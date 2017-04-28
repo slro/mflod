@@ -1,0 +1,21 @@
+{
+  "base_box": "ubuntu/xenial64",
+  "vb_props": {
+    "vm_name": "vagrant_ubuntu_1604_mdlod",
+    "cpu_count": "4",
+    "cpu_cap_p": "50",
+    "ram_amount": "4096"
+  },
+  "prov_base": "./vconf/pkg/",
+  "prov_scripts": [
+    "system_update.sh",
+    "install_git.sh",
+    "install_pip3.sh",
+    "install_pyasn1.sh"
+  ],
+  "env_mod_path": "/etc/profile.d/env_mod.sh",
+  "env_mod_cmds": [
+    "cd /vagrant",
+    "mv ubuntu*.log log/"
+  ]
+}
