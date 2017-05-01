@@ -4,9 +4,9 @@
 > implementation of **Flod** overlay protocol. For a complete version of
 > project documentation see ???[no link yet].
 
-This is a documentation for a `Crypto` module of **MFlod** messenger. It describes
+This is a documentation for `Crypto` module of **MFlod** messenger. It describes
 the process of creation of **Flod** protocol message packet, security
-implications of the cryptographic design behind it and how all of this is
+implications of a cryptographic design behind it and how all of this is
 implemented in **MFlod**.
 
 ## Description of a message packet structure
@@ -29,9 +29,9 @@ illustration below is a high-level overview of **Flod** message packet:
 
 ```
 ---------------------------------------
-|                                     |
+|            |          |             |
 | (2) HEADER | (1) HMAC | (0) CONTENT |
-|                                     |
+|            |          |             |
 ---------------------------------------
 ```
 
@@ -46,9 +46,45 @@ is constructed. The basic description of the each block is as follows:
      meta-information about a message along with keys generated for blocks
      `(0)` and `(1)`.
 
-Below is more detailed description of contents of an each block of the message
+Below is a more detailed description of content of each block of the message
 packet.
 
 #### (0) Content Block
 
-Hey hey hey
+The content block encapsulates the message being sent and time stamp of when it
+was composed. Concatenated together they are encrypted with a uniformly at
+random chosen encryption key (128 bit) of AES-128-CBC cipher.
+
+The IV (128 bit) for AES-CBC encryption is also generated uniformly at random.
+The concatenation of the time stamp and the message is padded with
+[PKCS#7](https://en.wikipedia.org/wiki/Padding_(cryptography)) padding scheme.
+
+The resulting `(0) CONTENT` block looks the following:
+
+```
+-----------------------------------------------------
+|        | ...................................(100) |
+|        | . ============================(10).      |
+|   IV   | . || (1) time | (0) content ||    .      |
+|        | . ============================    .      |
+|        | ...................................      |
+-----------------------------------------------------
+```
+
+To create a valid content block the following steps to be performed (omitting
+ASN.1 aspects to simplify description):
+
+ 1. Get message to send from a user `(0)`
+ 2. Get current UTC time in a format `YYMMDDhhmmssZ` (complies with [ASN.1
+    UTCtime type](https://www.obj-sys.com/asn1tutorial/node15.html)) `(1)`
+ 3. Concatenate `(1)` and `(0)` yielding `(1)|(0)`
+ 4. Pad `(1)|(0)` according to PKCS#7 standard to get block `(10)`. At this
+    stage block `(10)` should be strictly a multiple of AES block size (which
+    is 128 bit).
+ 5. Generate a random 128 bit bytestring which is an AES-128-CBC key for this
+    message packet. The key generated is used **only 1 time** to encrypt the
+    current message. Each new message must be encrypted with randomly generated
+    fresh AES key.
+ 6. Generate a random 128 bit bytystring which is an initialization vector for
+    this encryption procedure only. Each new message must be encrypted with
+    randomly generated fresh IV.
