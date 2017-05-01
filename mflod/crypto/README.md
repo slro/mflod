@@ -1,6 +1,11 @@
-# Crypto module
+Crypto module
+=============
 
-[TODO: add index]
+Index
+-----
+
+1. [Message Packet Structure](Description of message packet structure)
+..1. [General Structure](General Structure)
 
 > This document is a part of **MFlod** messenger documentation which an
 > implementation of **Flod** overlay protocol. For a complete version of
@@ -11,7 +16,8 @@ the process of creation of **Flod** protocol message packet, security
 implications of a cryptographic design behind it and how all of this is
 implemented in **MFlod**.
 
-## Description of a message packet structure
+Description of a message packet structure
+-----------------------------------------
 
 The message packet is a structure that represents an encrypted message that is
 sent from a one user of **Flod** protocol overlay to an other. The size of the
@@ -28,7 +34,7 @@ a reference implementation.
 > The general structure documentation block is intended as a description of
 > the message packet creation logic. It should not be used on its own to
 > implement the message packet assembler. The block on [TODO: add link] ASN.1
-> structure is what to be used for actual implementation reference.
+> structure is what to be used as an actual implementation reference.
 
 In essence the message packet structure is very similar to a standard [hybrid
 cryptosystem scheme](https://en.wikipedia.org/wiki/Hybrid_cryptosystem). The
