@@ -18,27 +18,28 @@ Table of Contents
        * [`(0) CONTENT` Block](#0-content-block)
        * [`(1) HMAC` Block](#1-hmac-block)
        * [`(2) HEADER` Block](#2-header-block)
-    2. 
+    2. [ASN.1 Backed Structure](#asn1-backed-structure)
 
 Message Packet Structure
 -----------------------------------------
 
 The message packet is a structure that represents an encrypted message that is
-sent from a one user of **Flod** protocol overlay to an other. The size of the
+sent from one user of **Flod** protocol overlay to another. The size of the
 packet can be of variable length though some of its parts are always remain
-constant.
+constant (`(1) HMAC` block, local blocks of `(2) HEADER` etc). 
 
-The general structure of the message packet is described below together with
-some security implications while the further sections describe how a general
-packet structure is expressed in terms of ASN.1 which is what actually used in
-a reference implementation.
+A general structure of the message packet is described below together with
+some security implications while further sections describe how the general
+message packet structure is expressed in terms of ASN.1 which is enforced by 
+**Flod** protocol documentation.
 
 ### General Structure
 
-> The general structure documentation block is intended as a description of
+> The general structure documentation section is intended as a description of
 > the message packet creation logic. It should not be used on its own to
-> implement the message packet assembler. The block on [TODO: add link] ASN.1
-> structure is what to be used as an actual implementation reference.
+> implement the message packet assembler. A section on
+> [ASN.1 backed structure](#asn1-backed-structure)
+> is what to be used as an actual implementation reference.
 
 In essence the message packet structure is very similar to a standard [hybrid
 cryptosystem scheme](https://en.wikipedia.org/wiki/Hybrid_cryptosystem). The
@@ -52,16 +53,16 @@ illustration below is a high-level overview of **Flod** message packet:
 ---------------------------------------
 ```
 
-The indices from right to left are motivated by the order in which message packet
-is constructed. The basic description of the each block is as follows:
+The indices from right to left are motivated by the order in which message
+packet is constructed. A basic description of each block is as follows:
 
  - `(0) CONTENT` - encrypted with AES-128-CBC timestamped message with
      prepended plaintext IV (initialization vector).
  - `(1) HMAC` - hash-based message authentication code of a
      `(0)` block. The underlying hash function is SHA-1.
- - `(2) HEADER` - encrypted with public key of a recipient with RSA-OAEP
-     meta-information about a message along with keys generated for blocks
-     `(0)` and `(1)`.
+ - `(2) HEADER` - encrypted with public key of a recipient using RSA-OAEP
+     encryption algorithm meta-information about a message along with keys
+     generated for blocks `(0)` and `(1)`.
 
 Below is a more detailed description of content of each block of the message
 packet.
@@ -98,11 +99,11 @@ ASN.1 aspects to simplify the initial description):
  4. Pad `(1)|(0)` according to PKCS#7 standard to get block `(10)`. At this
     stage block `(10)` should be strictly a multiple of AES block size (which
     is 128 bit).
- 5. Generate a random 128 bit bytestring which is an AES-128-CBC key for this
+ 5. Generate a random 128 bit value which is an AES-128-CBC key for this
     message packet. The key generated is used **only 1 time** to encrypt the
-    current message. Each new message must be encrypted with randomly generated
-    fresh AES key.
- 6. Generate a random 128 bit bytestring which is an initialization vector for
+    current message only. Each new message must be encrypted with randomly 
+    generated fresh AES key.
+ 6. Generate a random 128 bit value which is an initialization vector for
     this encryption procedure only. Each new message must be encrypted with
     randomly generated fresh IV.
  7. Encrypt block `(10)` with AES-128 in [CBC
@@ -137,9 +138,14 @@ necessary:
 
 #### (2) Header Block
 
-The header block is an encrypted storage for keys used in previous blocks as
-well as some extra meta-information that facilitates protocol operation. The
-structure is as follows:
+The header block is an encrypted container for keys used in previous blocks as
+well as some extra meta-information that facilitates protocol operation. 
+
+The encryption is performed using RSA algorithm with a key length at least 1024 bit.
+The content of a block is padded with
+[OAEP](https://en.wikipedia.org/wiki/Optimal_asymmetric_encryption_padding).
+
+The structure is as follows:
 
 ```
 -------------------------------------------------------------------------------------
@@ -155,28 +161,27 @@ These steps are necessary to produce a valid header block:
 
  1. Concatenate keys that were used in `(1) HMAC` block and `(0) CONTENT`
     blocks. The first one is the key used to calculate an HMAC. The second one
-    is a key used in AES encryption. The local block `(1)` and `(0)` are ready.
+    is a key used in AES encryption. The local blocks `(1)` and `(0)` are ready.
  2. Calculate a SHA-1 hash from the result of step 1. This yields a local block
     `(2)`.
  3. Sign local block `(2)` produced in the previous step with RSA private key
     of a sender. The signature is a local block `(20)`. Prepend result of the
-    step 1 with the signature.
- 4. Prepend the result of the previous step with a PGP keypair ID of a sender
-    which was used to produce a signature in the previous step. If the sender's
-    keypair is not a PGP keypar append all-zero dummy ID.
+    step 1 with the it.
+ 4. Prepend the result of the previous step with a PGP keypair ID `(3)` of a 
+    sender. If the sender's keypair is not a PGP keypair append all-zero dummy ID. 
  5. Prepend the result of the previous step with a 4-byte indentification
-    string: *FLOD*. This values is used to determine a successful decription of
-    a header block on a side of recipient.
- 6. Pad result of the previous step according to a
+    string `(4)`: *FLOD*. This value is used to determine a successful decryption
+    of a header block on a side of the recipient.
+ 6. Pad result of the previous step according to 
     [OAEP](https://en.wikipedia.org/wiki/Optimal_asymmetric_encryption_padding)
     padding standard
- 7. Encrypt the result of the previous step with RSA public key of the recipient.
-    The result is a local block `(200)` and itself is a full `(2) HEADER`
-    block.
+ 7. Encrypt the result of the previous step with RSA using public key of the
+    recipient. The result is a local block `(200)` and itself is a full
+    `(2) HEADER` block.
 
 Note that *steps 2-4 are optional* and can be omitted depending on a sender's
 decision. Though it would not allow the recipient to verify the identity of the
-sender in any way. But it still allows the recipient to decrypt a message.
+sender in any way. It still allows the recipient to decrypt a message.
 
 The minimal required size of RSA keypair for both sender and recipient is
 1024 bits. The recommended size of RSA keypair is at least 2048 bits.
@@ -186,3 +191,5 @@ information must be extracted from PGP containers. The signature creation and
 encryption routines **cannot be preformed** by PGP software suit. The reason
 for it is a leakage of meta-information about a keypair owner in PGP software
 (ID, email etc).
+
+### ASN.1 Backed Structure
