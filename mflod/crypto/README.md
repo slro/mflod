@@ -141,8 +141,8 @@ necessary:
 The header block is an encrypted container for keys used in previous blocks as
 well as some extra meta-information that facilitates protocol operation. 
 
-The encryption is performed using RSA algorithm with a key length at least 1024 bit.
-The content of a block is padded with
+The encryption is performed using RSA algorithm with a key length of at least 
+1024 bits. The content of a block is padded with
 [OAEP](https://en.wikipedia.org/wiki/Optimal_asymmetric_encryption_padding).
 
 The structure is as follows:
