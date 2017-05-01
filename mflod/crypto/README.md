@@ -1,8 +1,10 @@
 # Crypto module
 
+[TODO: add index]
+
 > This document is a part of **MFlod** messenger documentation which an
 > implementation of **Flod** overlay protocol. For a complete version of
-> project documentation see [no link yet].
+> project documentation see [no link yet]. [TODO: add link]
 
 This is a documentation for `Crypto` module of **MFlod** messenger. It describes
 the process of creation of **Flod** protocol message packet, security
@@ -22,6 +24,11 @@ packet structure is expressed in terms of ASN.1 which is what actually used in
 a reference implementation.
 
 ### General Structure
+
+> The general structure documentation block is intended as a description of
+> the message packet creation logic. It should not be used on its own to
+> implement the message packet assembler. The block on [TODO: add link] ASN.1
+> structure is what to be used for actual implementation reference.
 
 In essence the message packet structure is very similar to a standard [hybrid
 cryptosystem scheme](https://en.wikipedia.org/wiki/Hybrid_cryptosystem). The
@@ -95,9 +102,6 @@ ASN.1 aspects to simplify the initial description):
  8. Prepend block `(100)` with IV used for encryption (generated on step 6).
     After that the full `(0) CONTENT` block was constructed.
 
-**NOTE**: the above steps are for illustrative purposes only! The actual
-message packet are to be expressed as an ASN.1 structure (described later).
-
 The reason why AES-128 was chosen over AES-256 is due to a poor design of a key
 schedule for a later flavor of AES (see [this
 article](https://www.schneier.com/blog/archives/2009/07/another_new_aes.html)).
@@ -119,7 +123,7 @@ necessary:
  1. Generate a random 160 bit bytestring which is a key to use for this HMAC
     calculation. Every new message must utilize a random and fresh HMAC key.
  2. Calculate an SHA1-HMAC of `(0) CONTENT` block with a key from step 1. The
-    result is a `(1) HMAC` block.
+    result is the `(1) HMAC` block.
 
 #### (2) Header Block
 
