@@ -13,11 +13,11 @@ implemented in **MFlod**.
 Table of Contents
 -----------------
 
-1. [Message Packet Structure](#message-packet-structure)
-   1. [General Structure](#general-structure)
-      * [`(0) CONTENT` Block](#0-content-block)
-      * [`(1) HMAC` Block](#1-hmac-block)
-      * [`(2) HEADER` Block](#2-header-block)
+ 1. [Message Packet Structure](#message-packet-structure)
+    1. [General Structure](#general-structure)
+       * [`(0) CONTENT` Block](#0-content-block)
+       * [`(1) HMAC` Block](#1-hmac-block)
+       * [`(2) HEADER` Block](#2-header-block)
 
 Message Packet Structure
 -----------------------------------------
@@ -80,9 +80,9 @@ The resulting `(0) CONTENT` block looks the following:
 ```
 ---------------------------------------------------
 |        | .................................(100) |
-|        | . ++++++++++++++++++++++++++(10).      |
-|   IV   | . + (1) time | (0) content +    .      |
-|        | . ++++++++++++++++++++++++++    .      |
+|        | . **************************(10).      |
+|   IV   | . * (1) time | (0) content *    .      |
+|        | . **************************    .      |
 |        | .................................      |
 ---------------------------------------------------
 ```
@@ -143,9 +143,36 @@ structure is as follows:
 ```
 -------------------------------------------------------------------------------------
 |******************************************************************************(200)|
-|*        |          | +++++++++++++++++++++++++(20) |            |                *|
-|* (4) IS | (3) S_ID | + (2) H(k_hmac | k_aes) +     | (1) K_HMAC | (0) K_AES      *|
-|*        |          | +++++++++++++++++++++++++     |            |                *|
-|***********************************************************************************|
+|*        |          | +++++++++++++++++++++++++(20) |            |           *     |
+|* (4) IS | (3) S_ID | + (2) H(k_hmac | k_aes) +     | (1) K_HMAC | (0) K_AES *     |
+|*        |          | +++++++++++++++++++++++++     |            |           *     |
+|******************************************************************************     |
 -------------------------------------------------------------------------------------
 ```
+
+These steps are necessary to produce a valid header block:
+
+ 1. Concatenate keys that were used in `(1) HMAC` block and `(0) CONTENT`
+    blocks. The first one is the key used to calculate an HMAC. The second one
+    is a key used in AES encryption. The local block `(1)` and `(0)` are ready.
+ 2. Calculate a SHA-1 hash from the result of step 1. This yields a local block
+    `(2)`.
+ 3. Sign local block `(2)` produced in the previous step with RSA private key
+    of a sender. The signature is a local block `(20)`. Prepend result of the
+    step 1 with the signature.
+ 4. Prepend the result of the previous step with a PGP keypair ID of a sender
+    which was used to produce a signature in the previous step. If the sender's
+    keypair is not a PGP keypar append all-zero dummy ID.
+ 5. Prepend the result of the previous step with a 4-byte indentification
+    string: *FLOD*. This values is used to determine a successful decription of
+    a header block on a side of recipient.
+ 6. Encrypt the result of the previous step with RSA public key of the recipient.
+    The result is a local block `(200)` and itself is a full `(2) HEADER`
+    block.
+
+Note that *steps 2-4 are optional* and can be omitted depending on a sender's
+decision. Though it would not allow the recipient to verify the identity of the
+sender in any way. But it still allows the recipient to decrypt a message.
+
+The minimal required size of RSA keypair for both sender and recipient is
+1024 bits. The recommended size of RSA keypair is at least 2048 bits.
