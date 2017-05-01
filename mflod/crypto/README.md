@@ -7,7 +7,7 @@ Crypto module
 
 This is a documentation for `Crypto` module of **MFlod** messenger. It describes
 the process of creation of **Flod** protocol message packet, security
-implications of a cryptographic design behind it and how all of this is
+implications of a cryptographic design behind it and how all of these is
 implemented in **MFlod**.
 
 Table of Contents
