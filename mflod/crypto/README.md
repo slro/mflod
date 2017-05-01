@@ -104,11 +104,33 @@ article](https://www.schneier.com/blog/archives/2009/07/another_new_aes.html)).
 
 #### (1) HMAC Block
 
-This block encapsulates a hash-based message authentication code for a block
+This block encapsulates a hash-based message authentication code for the block
 `(0) CONTENT`. The hash function of choice is SHA-1 and despite recent news of
 [Google breaking
 it](https://security.googleblog.com/2017/02/announcing-first-sha1-collision.html)
-its use in HMAC is still secure (see
+HMAC bases on SHA-1 is still secure (see
 [[1]](http://www.schneier.com/blog/archives/2005/02/sha1_broken.html),
 [[2]](http://cseweb.ucsd.edu/~mihir/papers/hmac-new.html),
-[[RFC2104, page 5]](https://www.ietf.org/rfc/rfc2104.txt))
+[[RFC2104, page 5]](https://www.ietf.org/rfc/rfc2104.txt)).
+
+To produce a correct HMAC for a block `(0) CONTENT` the following steps are
+necessary:
+
+ 1. Generate a random 160 bit bytestring which is a key to use for this HMAC
+    calculation. Every new message must utilize a random and fresh HMAC key.
+ 2. Calculate an SHA1-HMAC of `(0) CONTENT` block with a key from step 1. The
+    result is a `(1) HMAC` block.
+
+#### (2) Header Block
+
+The header block is an encrypted storage for keys used in previous blocks as
+well as some extra meta-information that facilitates protocol operation. The
+structure is as follows:
+
+```
+--------------------------------------
+|
+|
+|
+--------------------------------------
+```
