@@ -166,7 +166,10 @@ These steps are necessary to produce a valid header block:
  5. Prepend the result of the previous step with a 4-byte indentification
     string: *FLOD*. This values is used to determine a successful decription of
     a header block on a side of recipient.
- 6. Encrypt the result of the previous step with RSA public key of the recipient.
+ 6. Pad result of the previous step according to a
+    [OAEP](https://en.wikipedia.org/wiki/Optimal_asymmetric_encryption_padding)
+    padding standard
+ 7. Encrypt the result of the previous step with RSA public key of the recipient.
     The result is a local block `(200)` and itself is a full `(2) HEADER`
     block.
 
