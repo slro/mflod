@@ -2,7 +2,7 @@
 
 > This document is a part of **MFlod** messenger documentation which an
 > implementation of **Flod** overlay protocol. For a complete version of
-> project documentation see ???[no link yet].
+> project documentation see [no link yet].
 
 This is a documentation for `Crypto` module of **MFlod** messenger. It describes
 the process of creation of **Flod** protocol message packet, security
@@ -72,11 +72,11 @@ The resulting `(0) CONTENT` block looks the following:
 ```
 
 To create a valid content block the following steps to be performed (omitting
-ASN.1 aspects to simplify description):
+ASN.1 aspects to simplify the initial description):
 
  1. Get message to send from a user `(0)`
  2. Get current UTC time in a format `YYMMDDhhmmssZ` (complies with [ASN.1
-    UTCtime type](https://www.obj-sys.com/asn1tutorial/node15.html)) `(1)`
+    UTCTime type](https://www.obj-sys.com/asn1tutorial/node15.html)) `(1)`
  3. Concatenate `(1)` and `(0)` yielding `(1)|(0)`
  4. Pad `(1)|(0)` according to PKCS#7 standard to get block `(10)`. At this
     stage block `(10)` should be strictly a multiple of AES block size (which
@@ -85,6 +85,30 @@ ASN.1 aspects to simplify description):
     message packet. The key generated is used **only 1 time** to encrypt the
     current message. Each new message must be encrypted with randomly generated
     fresh AES key.
- 6. Generate a random 128 bit bytystring which is an initialization vector for
+ 6. Generate a random 128 bit bytestring which is an initialization vector for
     this encryption procedure only. Each new message must be encrypted with
     randomly generated fresh IV.
+ 7. Encrypt block `(10)` with AES-128 in [CBC
+    mode](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation) using
+    the key and the IV generated during steps 5-6. The result is a block
+    `(100)`.
+ 8. Prepend block `(100)` with IV used for encryption (generated on step 6).
+    After that the full `(0) CONTENT` block was constructed.
+
+**NOTE**: the above steps are for illustrative purposes only! The actual
+message packet are to be expressed as an ASN.1 structure (described later).
+
+The reason why AES-128 was chosen over AES-256 is due to a poor design of a key
+schedule for a later flavor of AES (see [this
+article](https://www.schneier.com/blog/archives/2009/07/another_new_aes.html)).
+
+#### (1) HMAC Block
+
+This block encapsulates a hash-based message authentication code for a block
+`(0) CONTENT`. The hash function of choice is SHA-1 and despite recent news of
+[Google breaking
+it](https://security.googleblog.com/2017/02/announcing-first-sha1-collision.html)
+its use in HMAC is still secure (see
+[[1]](http://www.schneier.com/blog/archives/2005/02/sha1_broken.html),
+[[2]](http://cseweb.ucsd.edu/~mihir/papers/hmac-new.html),
+[[RFC2104, page 5]](https://www.ietf.org/rfc/rfc2104.txt))
