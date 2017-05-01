@@ -1,7 +1,7 @@
 Crypto module
 =============
 
-> This document is a part of **MFlod** messenger documentation which an
+> This document is a part of **MFlod** messenger documentation which is an
 > implementation of **Flod** overlay protocol. For a complete version of
 > project documentation see [no link yet]. [TODO: add link]
 
