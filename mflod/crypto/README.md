@@ -18,6 +18,7 @@ Table of Contents
        * [`(0) CONTENT` Block](#0-content-block)
        * [`(1) HMAC` Block](#1-hmac-block)
        * [`(2) HEADER` Block](#2-header-block)
+    2. 
 
 Message Packet Structure
 -----------------------------------------
@@ -179,3 +180,9 @@ sender in any way. But it still allows the recipient to decrypt a message.
 
 The minimal required size of RSA keypair for both sender and recipient is
 1024 bits. The recommended size of RSA keypair is at least 2048 bits.
+
+In case of a usage of PGP RSA keypairs the actual public and secret key
+information must be extracted from PGP containers. The signature creation and
+encryption routines **cannot be preformed** by PGP software suit. The reason
+for it is a leakage of meta-information about a keypair owner in PGP software
+(ID, email etc).
