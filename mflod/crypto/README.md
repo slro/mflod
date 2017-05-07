@@ -142,8 +142,16 @@ The header block is an encrypted container for keys used in previous blocks as
 well as some extra meta-information that facilitates protocol operation. 
 
 The encryption is performed using RSA algorithm with a key length of at least 
-1024 bits. The content of a block is padded with
+1024 bits complying with RSAES-OAEP standard. The content of a block is padded with
 [OAEP](https://en.wikipedia.org/wiki/Optimal_asymmetric_encryption_padding).
+
+Both encryption and optional signing are made according to RSAES-OAEP and
+RSASSA-PSS standards of [PKCS#1](https://en.wikipedia.org/wiki/PKCS_1).
+
+The header would not fit into one block of RSA ciphertext therefore it has to
+be split into several blocks that are padded and encrypted separately.
+Currently used mode is ECB (which should not cause any information leak because
+of probabilistic padding used).
 
 The structure is as follows:
 
@@ -162,8 +170,8 @@ These steps are necessary to produce a valid header block:
  1. Concatenate keys that were used in `(1) HMAC` block and `(0) CONTENT`
     blocks. The first one is the key used to calculate an HMAC. The second one
     is a key used in AES encryption. The local blocks `(1)` and `(0)` are ready.
- 2. Calculate a SHA-1 hash from the result of step 1. This yields a local block
-    `(2)`.
+ 2. Calculate a SHA-1 hash from the result of step 1. Pad hash with PSS padding
+    according to RSASSA-PSS standard. This yields a local block `(2)`.
  3. Sign local block `(2)` produced in the previous step with RSA private key
     of a sender. The signature is a local block `(20)`. Prepend result of the
     step 1 with the it.
@@ -172,16 +180,23 @@ These steps are necessary to produce a valid header block:
  5. Prepend the result of the previous step with a 4-byte indentification
     string `(4)`: *FLOD*. This value is used to determine a successful decryption
     of a header block on a side of the recipient.
- 6. Pad result of the previous step according to 
+ 6. **Note** that the result of the previous step would not fit into a single RSA 
+    block therefore it has to be split into several blocks. Pad each block of
+    header according to 
     [OAEP](https://en.wikipedia.org/wiki/Optimal_asymmetric_encryption_padding)
-    padding standard
- 7. Encrypt the result of the previous step with RSA using public key of the
-    recipient. The result is a local block `(200)` and itself is a full
-    `(2) HEADER` block.
+    padding standard complying with RSAES-OAEP.
+ 7. Encrypt the result of the previous step (each block separetely) with RSA 
+    using public key of the recipient. Concatenate resulting ciphertext blocks
+    which is a local block `(200)` and itself is a full `(2) HEADER` block.
 
 Note that *steps 2-4 are optional* and can be omitted depending on a sender's
 decision. Though it would not allow the recipient to verify the identity of the
 sender in any way. It still allows the recipient to decrypt a message.
+
+If there is not actual signature in the header blocks `(3)` and `(20)` should
+be filled with a random data. The [ASN.1 Backed Structure](#asn1-backed-structure)
+section describes how existence or absence of signature can be determined from
+a content of a header.
 
 The minimal required size of RSA keypair for both sender and recipient is
 1024 bits. The recommended size of RSA keypair is at least 2048 bits.
