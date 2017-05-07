@@ -19,9 +19,15 @@ Table of Contents
        * [`(1) HMAC` Block](#1-hmac-block)
        * [`(2) HEADER` Block](#2-header-block)
     2. [ASN.1 Backed Structure](#asn1-backed-structure)
+       * [Common ASN.1 Structures](#common-asn1-structures)
+       * [`(0) CONTENT` Block ASN.1 Structure](#0-content-block-asn1-structure)
+       * [`(1) HMAC` Block ASN.1 Structure](#1-hmac-block-asn1-structure)
+       * [`(2) HEADER` Block ASN.1 Structure](#2-header-block-asn1-structure)
+       * [Message Packet Master ASN.1 Structure](#message-packet-master-asn1-structure)
+ 2. [MFlod Specific Implementation Details](#mflod-specific-implementation-details) 
 
 Message Packet Structure
------------------------------------------
+------------------------
 
 The message packet is a structure that represents an encrypted message that is
 sent from one user of **Flod** protocol overlay to another. The size of the
@@ -237,7 +243,7 @@ AlgorithmIdentifier ::= SEQUENCE {
 
 Common OIDs used in message packet structure are the following:
 
-> **Note**: most the algorithm identifiers does not include any information about
+> **Note**: most algorithm identifiers does not include any information about
 > padding or other preprocessing used. It would be stated explicitly where it's
 > needed.
 
@@ -340,3 +346,6 @@ MessagePacket ::= SEQUENCE {
 
 The structure above encapsulates the whole content of the message packet. This
 structure is then DER-encoded and sent to the recipient.
+
+MFlod Specific Implementation Details
+-------------------------------------
