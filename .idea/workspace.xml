@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0ae0a044-a08c-4ad0-95dc-d7bd94327649" name="Default" comment="" />
+    <list default="true" id="0ae0a044-a08c-4ad0-95dc-d7bd94327649" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/mflod/crypto/README.md" afterPath="$PROJECT_DIR$/mflod/crypto/README.md" />
+    </list>
     <ignored path="mflod.iws" />
     <ignored path=".idea/workspace.xml" />
     <ignored path=".idea/dataSources.local.xml" />
@@ -25,8 +27,8 @@
         <entry file="file://$PROJECT_DIR$/mflod/crypto/README.md">
           <provider selected="true" editor-type-id="split-provider[text-editor;MarkdownPreviewEditor]">
             <state split_layout="SPLIT">
-              <first_editor relative-caret-position="3145">
-                <caret line="249" column="52" selection-start-line="249" selection-start-column="52" selection-end-line="249" selection-end-column="52" />
+              <first_editor relative-caret-position="679">
+                <caret line="259" column="21" selection-start-line="259" selection-start-column="21" selection-end-line="259" selection-end-column="21" />
                 <folding />
               </first_editor>
               <second_editor>
@@ -87,8 +89,8 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/mflod/crypto/README.md" />
         <option value="$PROJECT_DIR$/.gitignore" />
+        <option value="$PROJECT_DIR$/mflod/crypto/README.md" />
       </list>
     </option>
   </component>
@@ -515,8 +517,8 @@
     <entry file="file://$PROJECT_DIR$/mflod/crypto/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;MarkdownPreviewEditor]">
         <state split_layout="SPLIT">
-          <first_editor relative-caret-position="3145">
-            <caret line="249" column="52" selection-start-line="249" selection-start-column="52" selection-end-line="249" selection-end-column="52" />
+          <first_editor relative-caret-position="679">
+            <caret line="259" column="21" selection-start-line="259" selection-start-column="21" selection-end-line="259" selection-end-column="21" />
             <folding />
           </first_editor>
           <second_editor>
