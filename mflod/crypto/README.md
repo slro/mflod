@@ -193,3 +193,52 @@ for it is a leakage of meta-information about a keypair owner in PGP software
 (ID, email etc).
 
 ### ASN.1 Backed Structure
+`(0) CONTENT` Block
+```
+MPContentContainer ::= SEQUENCE {
+    IV                                      OCTET STRING,
+    encryptedAlgorithm      AlgorithmIdentifier,
+    encryptedContent         OCTET STRING
+                                              -- contains AES encrypted DER encoding of MPContent
+                                                  that is padded with PKCS#7 scheme
+}
+ ```
+```
+AlgorithmIdentifier ::= SEQUENCE {
+    algorithm                         OBJECT IDENTIFIER.
+    parameters                       ANY DEFINED BY algorithm OPTIONAL
+}
+```
+```
+MPContent ::= SEQUENCE {
+    timestamp                         UTCTime,
+    content                               OCTET STRING
+}
+ ```
+ `(1) HMAC` Block
+```
+MPHMACContainer ::= SEQUENCE {
+    digestAlgorithm                 AlgorithmIdentifier,
+    digest                                  OCTET STRING
+}
+```
+`(2) HEADER` Block
+```
+MPHeaderContainer ::= SEQUENCE {
+    identificationString           OCTET STRING.
+    signatureAlgorithm           AlgorithmIdentifier,
+    PGPKeyID                            OCTET STRING,
+    signature                            OCTET STRING,
+    HMACKey                            OCTET STRING,
+    AESKey                                OCTET STRING,
+}
+```
+`MESSAGE PACKET`
+```
+MessagePacket ::= SEQUENCE {
+    protocolVersion                INTEGER,
+    headerBlock                      MPHeaderContainer,
+    hmacBlock                         MPHMACContainer,
+    contentBlock                     MPContentContainer
+}
+```
