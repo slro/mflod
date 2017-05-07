@@ -211,38 +211,101 @@ for it is a leakage of meta-information about a keypair owner in PGP software
 (ID, email etc).
 
 ### ASN.1 Backed Structure
-`(0) CONTENT` Block
-```
-MPContentContainer ::= SEQUENCE {
-    IV                       OCTET STRING,
-    encryptedAlgorithm       AlgorithmIdentifier,
-    encryptedContent         OCTET STRING
-                             -- contains AES encrypted DER encoding of MPContent
-                                that is padded with PKCS#7 scheme
-}
- ```
+
+This section expresses the concepts of the previous one in terms of
+[ASN.1](https://en.wikipedia.org/wiki/Abstract_Syntax_Notation_One)
+notation. This is what is actually defined in **FLOD** protocol specification
+and is mandatory to comply with.
+
+Each subsection contains ASN.1 declaration for each of the message packet blocks
+defined above. The first subsection describes shared structures that are used
+in several blocks as well as ASN.1 OIDs (object identifiers) for a common
+algorithms and standards used.
+
+#### Common ASN.1 Structures
+
+The **AlgorithmIdentifier** structure is commonly used to indicate what
+algorithm is used to produce a certain part of ASN.1 structure content. It
+looks like the following:
+
 ```
 AlgorithmIdentifier ::= SEQUENCE {
     algorithm                OBJECT IDENTIFIER,
     parameters               ANY DEFINED BY algorithm OPTIONAL
 }
 ```
+
+Common OIDs used in message packet structure are the following:
+
+> **Note**: most the algorithm identifiers does not include any information about
+> padding or other preprocessing used. It would be stated explicitly where it's
+> needed.
+
+ - **id-rsaes-oaep(7)**, OID `1.2.840.113549.1.1.7`: RSA encryption standard used
+   (defined in PKCS#1 [RFC 2313](https://tools.ietf.org/html/rfc2313))
+ - **rsassa-pss(10)**, OID `1.2.840.113549.1.1.10`: RSA signature standard used
+   (defined in PKCS#1 [RFC 2313](https://tools.ietf.org/html/rfc2313)). The
+   hash function used to compress content to sign is SHA1.
+ - **sha1(1)**, OID `1.3.6.1.4.1.22554.1.1`: hashing algorithm used in several
+   parts of message packet structure (HMAC, signing)
+ - **aes128-CBC(2)**, OID `2.16.840.1.101.3.4.1.2`: AES encryption in CBC mode
+   used to encrypt an actual message content. The padding used is PKCS#7.
+
+#### `(0) CONTENT` Block ASN.1 Structure
+
+```
+MPContentContainer ::= SEQUENCE {
+    initializationVector      OCTET STRING,
+    encryptionAlgorithm       AlgorithmIdentifier,
+    encryptedContent          OCTET STRING
+                              -- contains AES encrypted DER encoding of MPContent
+                                 that is padded with PKCS#7 scheme
+}
+```
+
+The `encryptionAlgorithm` used is **aes128-CBC(2)**. The content of `MPContent`
+ASN.1 structure is encoded as DER, padded with PKCS#7 and then ecrypted with
+AES-128-CBC.
+
 ```
 MPContent ::= SEQUENCE {
     timestamp                UTCTime,
     content                  OCTET STRING
 }
- ```
- `(1) HMAC` Block
+```
+
+The format for `UTCTime` ASN.1 structure is: `YYMMDDhhmmssZ`.
+
+#### `(1) HMAC` Block ASN.1 Structure
+
 ```
 MPHMACContainer ::= SEQUENCE {
     digestAlgorithm          AlgorithmIdentifier,
     digest                   OCTET STRING
 }
 ```
-`(2) HEADER` Block
+
+The `digestAlgorithm` used is **sha1(1)** which is an underlying hashing
+algorithm for an HMAC.
+
+#### `(2) HEADER` Block ASN.1 Structure
+
 ```
 MPHeaderContainer ::= SEQUENCE {
+    encryptionAlgorithm     AlgorithmIdentifier
+    encryptedHeader         OCTET STRING
+}
+```
+
+The `encryptionAlgorithm` used is **id-rsaes-oaep(7)**. With RSA keys of any
+size the `MPHeader` won't fit into one RSA encryption block so in practice it's
+split into several block that are padded with OAEP scheme and encrypted
+individually. Then the resulting ciphertexts are concatenated together.
+
+Before splitting the `MPHeader` has to be DER-encoded.
+
+```
+MPHeader ::= SEQUENCE {
     identificationString     OCTET STRING.
     signatureAlgorithm       AlgorithmIdentifier,
     PGPKeyID                 OCTET STRING,
@@ -251,7 +314,21 @@ MPHeaderContainer ::= SEQUENCE {
     AESKey                   OCTET STRING,
 }
 ```
-`MESSAGE PACKET`
+
+The `signatureAlgorithm` used is **rsassa-pss(10)**. The signature is produced
+on concatenated `HMACKey` and `AESKey` digest produced with SHA1 algorithm.
+
+`PGPKeyID` is an ID of PGP key pair used to sign the encryption keys. If the
+sender uses PGP key to send a message then it this field has an actual value.
+If the key used for signature is not a PGP key `PGPKeyID` should be set to 0.
+
+If sender is willing to omit signing the message both `PGPKeyID` and
+`signature` fields should be filled with random data of corresponding length.
+This is made to prevent attacker from determining whether the message was
+signed or not.
+
+#### Message Packet Master ASN.1 Structure
+
 ```
 MessagePacket ::= SEQUENCE {
     protocolVersion          INTEGER,
@@ -260,3 +337,6 @@ MessagePacket ::= SEQUENCE {
     contentBlock             MPContentContainer
 }
 ```
+
+The structure above encapsulates the whole content of the message packet. This
+structure is then DER-encoded and sent to the recipient.
