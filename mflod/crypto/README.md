@@ -146,12 +146,15 @@ The encryption is performed using RSA algorithm with a key length of at least
 [OAEP](https://en.wikipedia.org/wiki/Optimal_asymmetric_encryption_padding).
 
 Both encryption and optional signing are made according to RSAES-OAEP and
-RSASSA-PSS standards of [PKCS#1](https://en.wikipedia.org/wiki/PKCS_1).
+RSASSA-PSS (respectively) standards of [PKCS#1](https://en.wikipedia.org/wiki/PKCS_1).
 
 The header would not fit into one block of RSA ciphertext therefore it has to
 be split into several blocks that are padded and encrypted separately.
 Currently used mode is ECB (which should not cause any information leak because
 of probabilistic padding used).
+
+It's advisable to split header in such a way that signature block `(20)` content 
+is also into several blocks.
 
 The structure is as follows:
 
