@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # wrapper for a package installation pipeline
 # with all the necessary checks and outputs
 install_package() {
