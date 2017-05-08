@@ -176,7 +176,7 @@ class Crypto(object):
         mp_content_container = asn1_dec.MPContentContainer()
         mp_content_container['initializationVector'] = iv
         mp_content_container['encryptionAlgorithm'] = \
-            self.__get_asn1_algorithm_identifier(const.AES_128_CBC)
+            self.__get_asn1_algorithm_identifier(const.AES_128_CBC_OID)
         mp_content_container['encryptedContent'] = mp_content_ct
 
         # encode MPContentContainer and return it
@@ -185,7 +185,7 @@ class Crypto(object):
     def __disassemble_content_block(self, content, key):
         """ Decrypt and decode content from a content block
 
-        @developer: ???
+        @developer: ddnomad
 
         :param content: DER-encoded ASN.1 structure that encapsulates
                         encrypted content
@@ -207,7 +207,7 @@ class Crypto(object):
         # recover values that are necessary for decryption
         # TODO: verify encryptionAlgorithm OID
         iv = bytes(mp_content_container_asn1[0][0])
-        enc_content = str(mp_content_container_asn1[0][2])
+        enc_content = bytes(mp_content_container_asn1[0][2])
 
         # decrypt DER-encoded MPContent
         mp_content_pt_der = self.__decrypt_with_aes(enc_content, key, iv)
@@ -317,7 +317,7 @@ class Crypto(object):
 
         @developer: ddnomad
 
-        :param content: string DER-encoded MPContent ASN.1 structure to encrypt
+        :param content: bytes DER-encoded MPContent ASN.1 structure to encrypt
         :param key:     string key to use for encryption
         :param iv:      string CBC mode initialization vector
 
@@ -348,7 +348,7 @@ class Crypto(object):
 
         @developer: ddnomad
 
-        :param content: string ciphertext of MPContent ASN.1 structure
+        :param content: bytes ciphertext of MPContent ASN.1 structure
         :param key:     string AES secret key
         :param iv:      string CBC mode initialization vector
 
@@ -368,7 +368,7 @@ class Crypto(object):
         dec_content = aes.update(content) + aes.finalize()
 
         # unpad content
-        unpadder = padding.PKCS7(const.AES_BLOCK_SIZE).padder()
+        unpadder = padding.PKCS7(const.AES_BLOCK_SIZE).unpadder()
         dec_content_unpadded = unpadder.update(dec_content) + \
             unpadder.finalize()
 
@@ -453,7 +453,7 @@ class Crypto(object):
 
         # TODO: add exceptions
 
-        self.logger.debug("Producing a signature using RSASSA-PSS scheme...")
+        self.logger.debug("generating a signature of an input content")
         # creating signer that will sign our content
         try:
             signer = user_sk.signer(
@@ -469,7 +469,7 @@ class Crypto(object):
             return
         signer.update(content)
         signature = signer.finalize()
-        self.logger.info("Successfully produces signature!")
+        self.logger.info("signature generation finished")
         return signature
 
     def __verify_signature(self, signature, signer_pk, content):
@@ -485,7 +485,7 @@ class Crypto(object):
         :return: bool verification result
 
         """
-        self.logger.debug("Verify RSASSA-PSS signature...")
+        self.logger.debug("starting signature verification routine")
         try:
             signer_pk.verify(
                 signature,
@@ -497,9 +497,9 @@ class Crypto(object):
                 SHA1()
             )
         except InvalidSignature:
-            self.logger.warn("Signature verification failed!")
+            self.logger.warn("signature verification failed")
             return False
-        self.logger.info("Successful signature verification!")
+        self.logger.info("signature OK")
         return True
 
     def __get_asn1_algorithm_identifier(self, oid_str):
@@ -515,14 +515,18 @@ class Crypto(object):
 
         # TODO: add exceptions
 
+        # log entry
+        self.logger.debug("creating AlgorithmIdentifier ASN.1 "
+                          "structure with OID=%s" % oid_str)
+
         # create the instance of AlgorithmIdentifier
-        self.logger.debug("Receiving ASN.1 AlgorithmIdentifier"
-                          " structure with OID=%s") % oid_str
         ai = asn1_dec.AlgorithmIdentifier()
 
         # set corresponding parameters
         ai['algorithm'] = oid_str
         ai['parameters'] = univ.Null()
+
+        # return the result
         return ai
 
     def __get_random_bytes(self, spec_lst):
