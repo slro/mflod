@@ -365,8 +365,6 @@ class Crypto(object):
         except InvalidKey:
             self.logger.warn("Invalid key!")
             return
-
-        self.logger.info("Successfully decrypted!")
         return plaintext
 
     def __sign_content(self, content, user_sk):
