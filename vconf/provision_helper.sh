@@ -1,5 +1,7 @@
+#!/usr/bin/env bash
+
 # wrapper for a package installation pipeline
-# with all the neccesary checks and outputs
+# with all the necessary checks and outputs
 install_package() {
   inst_verif=$1
   package_name=${*: -2:1}
@@ -10,7 +12,7 @@ install_package() {
     echo " >> INSTALLING ${package_name^^} ..."
     export DEBIAN_FRONTEND=noninteractive
 
-    # running actual installation proccess
+    # running actual installation process
     # passed as a second parameter
     eval $inst_cmds > /dev/null 2>&1
     print_installation_status
@@ -18,7 +20,7 @@ install_package() {
 }
 
 # check a presence of a passed in command
-# returns 0 if check was succesful
+# returns 0 if check was successful
 # returns 1 in other cases
 is_installed() {
   eval $inst_verif > /dev/null 2>&1
