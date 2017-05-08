@@ -1,15 +1,22 @@
+# generic imports
 import logging
-import hmac
-from cryptography.hazmat.primitives.hashes import SHA1
-from pyasn1.codec.der.encoder import encode as asn1_encode
-from pyasn1.codec.der.decoder import decode as asn1_decode
-from os import urandom
 from datetime import datetime
-from pyasn1.type import univ
+
+# crypto module headers and helpers imports
 import mflod.crypto.asn1_structures as asn1_dec
 from mflod.crypto.constants import Constants as const
 from mflod.crypto.log_strings import LogStrings as logstr
+
+# ASN.1 tools imports
+from pyasn1.type import univ
+from pyasn1.codec.der.encoder import encode as asn1_encode
+from pyasn1.codec.der.decoder import decode as asn1_decode
+
+# cryptography connected imports
+import hmac
+from os import urandom
 from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.hashes import SHA1
 from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
@@ -36,6 +43,7 @@ class Crypto(object):
     def __init__(self):
         """ Initialization method """
 
+        # init logger object
         self.logger = logging.getLogger(__name__)
         self.logger.debug(logstr.CRYPTO_CLASS_INIT)
 
@@ -160,17 +168,20 @@ class Crypto(object):
         mp_content_pt['content'] = content
         mp_content_pt_der = asn1_encode(mp_content_pt)
 
-        # pad MPContent with PKCS#7
-        
+        # encrypt MPContent DER
+        mp_content_ct = self.__encrypt_with_aes(mp_content_pt_der, key, iv)
 
-        # initialize necessary crypto backend instances
-        backend = default_backend()
-        aes = Cipher(algorithms.AES(key), modes.CBC(iv),
-                backend=backend).encryptor()
+        # wrap MPContent into MPContentContainer
+        mp_content_container = asn1_dec.MPContentContainer()
+        mp_content_container['initializationVector'] = iv
+        mp_content_container['encryptionAlgorithm'] = \
+            self.__get_asn1_algorithm_identifier(const.AES_128_CBC)
+        mp_content_container['encryptedContent'] = mp_content_ct
 
+        # encode MPContentContainer and return it
+        return asn1_encode(mp_content_container)
 
-
-    def __disassemble_content_block(content, key):
+    def __disassemble_content_block(self, content, key):
         """ Decrypt and decode content from a content block
 
         @developer: ???
@@ -179,11 +190,35 @@ class Crypto(object):
                         encrypted content
         :param key:     string AES key to be used for decryption
 
-        :return: string decrypted message
+        :return: list of the following values:
+                    [0] datetime.datetime timestamp object
+                    [1] string decrypted message
 
         """
 
-        pass
+        # log entry
+        self.logger.debug(logstr.DISASSEMBLE_CONTENT_BLOCK_CALL)
+
+        # decode MPContentContainer from DER
+        # TODO: try-except in a case when decoding failed
+        mp_content_container_asn1 = asn1_decode(content)
+
+        # recover values that are necessary for decryption
+        # TODO: verify encryptionAlgorithm OID
+        iv = bytes(mp_content_container_asn1[0][0])
+        enc_content = str(mp_content_container_asn1[0][2])
+
+        # decrypt DER-encoded MPContent
+        mp_content_pt_der = self.__decrypt_with_aes(enc_content, key, iv)
+
+        # recover timestamp and message from DER-encoded MPContent
+        mp_content_pt_asn1 = asn1_decode(mp_content_pt_der)
+        timestamp = datetime.strptime(str(mp_content_pt_asn1[0][0]),
+                                      const.TIMESTAMP_FORMAT)
+        message = str(mp_content_pt_asn1[0][1])
+
+        # return the resulting data
+        return timestamp, message
 
     def __assemble_hmac_block(self, content, key):
         """ Produce HMAC block ASN.1 structure (MPHMACContainer)
@@ -276,33 +311,68 @@ class Crypto(object):
         hmac_digest.update(content)
         return hmac_digest.digest()
 
-    def __encrypt_with_aes(content, key):
+    def __encrypt_with_aes(self, content, key, iv):
         """ Encrypt content with AES-128-CBC (with PCKS#7 padding)
 
-        @developer: ???
+        @developer: ddnomad
 
         :param content: string DER-encoded MPContent ASN.1 structure to encrypt
         :param key:     string key to use for encryption
+        :param iv:      string CBC mode initialization vector
 
         :return: string encryption of an input content
 
         """
 
-        pass
+        # log entry
+        self.logger.debug(logstr.AES_ENC_CALL)
 
-    def __decrypt_with_aes(content, key):
+        # pad MPContent with PKCS#7
+        padder = padding.PKCS7(const.AES_BLOCK_SIZE).padder()
+        padded_content = padder.update(content) + padder.finalize()
+
+        # initialize AES cipher instance
+        backend = default_backend()
+        aes = Cipher(algorithms.AES(key), modes.CBC(iv),
+                     backend=backend).encryptor()
+
+        # encrypt padded content
+        content_ct = aes.update(padded_content) + aes.finalize()
+
+        # return the resulting ciphertext
+        return content_ct
+
+    def __decrypt_with_aes(self, content, key, iv):
         """ Decrypt AES-128-CBC encrypted content (PCKS#7 padded)
 
-        @developer: ???
+        @developer: ddnomad
 
         :param content: string ciphertext of MPContent ASN.1 structure
         :param key:     string AES secret key
+        :param iv:      string CBC mode initialization vector
 
         :return: string decrypted DER-encoded MPContent ASN.1 structure
 
         """
 
-        pass
+        # log entry
+        self.logger.debug(logstr.AES_DEC_CALL)
+
+        # initialize AES cipher instance
+        backend = default_backend()
+        aes = Cipher(algorithms.AES(key), modes.CBC(iv),
+                     backend=backend).decryptor()
+
+        # decrypt content
+        dec_content = aes.update(content) + aes.finalize()
+
+        # unpad content
+        unpadder = padding.PKCS7(const.AES_BLOCK_SIZE).padder()
+        dec_content_unpadded = unpadder.update(dec_content) + \
+            unpadder.finalize()
+
+        # return the resulting plaintext content
+        return dec_content_unpadded
 
     def __encrypt_with_rsa(self, content, recipient_pk):
         """ Encrypt content with RSAES-OAEP scheme
@@ -431,7 +501,7 @@ class Crypto(object):
         self.logger.info("Successful signature verification!")
         return True
 
-    def __get_asn1_algorithm_identifier_der(self, oid_str):
+    def __get_asn1_algorithm_identifier(self, oid_str):
         """ Generate ASN.1 structure for algorithm identifier
 
         @developer: vsmysle
