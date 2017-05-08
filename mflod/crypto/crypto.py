@@ -2,9 +2,11 @@ import logging
 import hmac
 from hashlib import sha1
 from pyasn1.codec.der.encoder import encode as asn1_encode
+from pyasn1.codec.der.decoder import decode as asn1_decode
 from os import urandom
 from datetime import datetime
-from mflod.crypto.asn1_structures import MPContent
+from pyasn1.type import univ
+from mflod.crypto.asn1_structures import MPContent, AlgorithmIdentifier, MPHMACContainer
 from mflod.crypto.constants import Constants as const
 from mflod.crypto.log_strings import LogStrings as logstr
 from cryptography.hazmat.primitives import padding
@@ -215,7 +217,7 @@ class Crypto(object):
         hmac_block['digestAlgorithm'] = ai
         hmac_block['digest'] = digest
 
-        return encode(hmac_block)
+        return asn1_encode(hmac_block)
 
     def __verify_hmac(self, hmac_blk, key, content_blk):
         """ Verify content HMAC
@@ -231,8 +233,17 @@ class Crypto(object):
         :return: bool verification result
 
         """
+        # TODO: add exceptions
 
-        pass
+        # calculation of the HMAC digest for received content block
+        hmac_of_content_blk = self.__generate_hmac(content_blk, key)
+
+        # get digest from the HMAC block
+        decoded_hmac_block = asn1_decode(hmac_blk)[0][1]
+
+        if decoded_hmac_block == hmac_of_content_blk:
+            return True
+        return False
 
     def __generate_hmac(self, content, key):
         """ Generate HMAC for in input content and key
@@ -368,12 +379,14 @@ class Crypto(object):
         # TODO: add exceptions
 
         # create the instance of AlgorithmIdentifier
-        self.logger.debug("Receiving ASN.1 AlgorithmIdentifier structure with "
-                      "OID=%s") % oid_str
+        self.logger.debug("Receiving ASN.1 AlgorithmIdentifier"
+                          " structure with OID=%s") % oid_str
         ai = AlgorithmIdentifier()
+
+        # set corresponding parameters
         ai['algorithm'] = oid_str
         ai['parameters'] = univ.Null()
-        return encode(ai)
+        return ai
 
     def __get_random_bytes(self, spec_lst):
         """ Generate random bytes
