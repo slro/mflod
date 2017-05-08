@@ -265,7 +265,7 @@ class Crypto(object):
         self.logger.debug("Generation HMAC for input content...")
 
         # generating instance of HMAC with sha1 hash function
-        hmac_digest = hmac.new(key, None, sha1)
+        hmac_digest = hmac.new(key, None, SHA1())
 
         # feed the content to generated HMAC instance
         hmac_digest.update(content)
@@ -320,6 +320,7 @@ class Crypto(object):
         :return: string encryption of an input content
 
         """
+        # TODO: add exceptions
         self.logger.debug("RSA encryption ...")
 
         ciphertext = recipient_pk.encrypt(
@@ -345,6 +346,19 @@ class Crypto(object):
         :return: string decryption of an input content
 
         """
+        # TODO: add exceptions
+
+        self.logger.debug("RSA decryption ...")
+
+        plaintext = user_sk.decrypt(
+            content, asym_padding.OAEP(
+                mgf=asym_padding.MGF1(algorithm=SHA1()),
+                algorithm=SHA1(),
+                label=None
+            )
+        )
+
+        return plaintext
 
     def __sign_content(self, content, user_sk):
         """ Produce a signature of an input content using RSASSA-PSS scheme
