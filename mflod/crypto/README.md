@@ -338,9 +338,9 @@ signed or not.
 ```
 MessagePacket ::= SEQUENCE {
     protocolVersion          INTEGER,
-    headerBlock              OCTET STRING encapsulates MPHeaderContainer,
-    hmacBlock                OCTET STRING encapsulates MPHMACContainer,
-    contentBlock             OCTET STRING encapsulates MPContentContainer
+    headerBlock              MPHeaderContainer,
+    hmacBlock                MPHMACContainer,
+    contentBlock             MPContentContainer
 }
 ```
 
