@@ -1,16 +1,23 @@
+# generic imports
 import logging
-import hmac
-from hashlib import sha1
-from cryptography.hazmat.primitives.hashes import SHA1
-from pyasn1.codec.der.encoder import encode as asn1_encode
-from pyasn1.codec.der.decoder import decode as asn1_decode
-from os import urandom
 from datetime import datetime
-from pyasn1.type import univ
+
+# crypto module headers and helpers imports
 import mflod.crypto.asn1_structures as asn1_dec
 from mflod.crypto.constants import Constants as const
 from mflod.crypto.log_strings import LogStrings as logstr
+
+# ASN.1 tools imports
+from pyasn1.type import univ
+from pyasn1.codec.der.encoder import encode as asn1_encode
+from pyasn1.codec.der.decoder import decode as asn1_decode
+
+# cryptography connected imports
+import hmac
+from os import urandom
+from hashlib import sha1
 from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.hashes import SHA1
 from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
@@ -37,6 +44,7 @@ class Crypto(object):
     def __init__(self):
         """ Initialization method """
 
+        # init logger object
         self.logger = logging.getLogger(__name__)
         self.logger.debug(logstr.CRYPTO_CLASS_INIT)
 
