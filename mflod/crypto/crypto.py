@@ -34,6 +34,9 @@ class Crypto(object):
         include optional signing in header block pass a sender_sk named
         argument.
 
+        Also this method handles the assembly of a HEADER block that involves
+        putting all the keys and meta-information together.
+
         :param msg_content:         string message to include into FLOD
                                     message packet
         :param recipient_pk:        instance of cryptography.hazmat.
@@ -49,7 +52,7 @@ class Crypto(object):
         :return: string DER-encoded ASN.1 structure that is FLOD message packet
                  ready to be sent to a recipient
 
-        :raise ???
+        :raise: ???
 
         """
 
@@ -113,22 +116,7 @@ class Crypto(object):
 
         pass
 
-    def __get_random_bytes(spec_lst):
-        """ Generate random bytes
-
-        @developer: ???
-
-        :param spec_lst: list of integers that is lengths of bytestings to
-                         return
-
-        :return: list of random bytestrings with lengths corresponding to the
-                 ones from a spec list
-
-        """
-
-        pass
-
-    def __assemble_content_block(content):
+    def __assemble_content_block(content, key):
         """ Create an ASN.1 DER-encoded structure of a content block
 
         @developer: ???
@@ -137,6 +125,7 @@ class Crypto(object):
         MPContentContainer
 
         :param content: string content to encapsulate
+        :param key: string AES key to use for encryption
 
         :return: string DER-encoding of MPContentContainer ASN.1 structure
 
@@ -144,22 +133,67 @@ class Crypto(object):
 
         pass
 
-    def __generate_content_hmac_block(content, key):
+    def __disassemble_content_block(content, key):
+        """ Decrypt and decode content from a content block
+
+        @developer: ???
+
+        :param content: DER-encoded ASN.1 structure that encapsulates
+                        encrypted content
+        :param key:     string AES key to be used for decryption
+
+        :return: string decrypted message
+
+        """
+
+        pass
+
+    def __assemble_hmac_block(content, key):
         """ Produce HMAC block ASN.1 structure (MPHMACContainer)
 
         @developer: ???
 
-        :param content: string content to produce digest of
-        :param key:     string key to use for an HMAC
+        :param content: string DER-encoded content generate HMAC of and
+                        encapsulate into HMAC FLOD block
+        :param key:     string key to use for HMAC generation
 
-        :return: pyasn1.type.univ.Sequence instance that encapsulates HMAC
+        :return: DER-encoded ASN.1 structure that encapsulates HMAC
                  block
 
         """
 
         pass
 
-    def __assemble_header_block(
+    def __verify_hmac(hmac_blk, key, content_blk):
+        """ Verify content HMAC
+
+        @developer: ???
+
+        :param hmac_blk:        string DER-encoded ASN.1 structure of HMAC
+                                block (MPHMACContainer)
+        :param key:             string HMAC secret key
+        :param content_blk:     string DER-encoded ASN.1 structure of content
+                                block
+
+        :return: bool verification result
+
+        """
+
+        pass
+
+    def __generate_hmac(content, key):
+        """ Generate HMAC for in input content and key
+
+        @developer: ???
+
+        :param content: string DER-encoded content to produce digest of
+        :param key:     string key to use for HMAC
+
+        :return: string HMAC of the input content
+
+        """
+
+        pass
 
     def __encrypt_with_aes(content, key):
         """ Encrypt content with AES-128-CBC (with PCKS#7 padding)
@@ -175,6 +209,90 @@ class Crypto(object):
 
         pass
 
+    def __decrypt_with_aes(content, key):
+        """ Decrypt AES-128-CBC encrypted content (PCKS#7 padded)
+
+        @developer: ???
+
+        :param content: string ciphertext of MPContent ASN.1 structure
+        :param key:     string AES secret key
+
+        :return: string decrypted DER-encoded MPContent ASN.1 structure
+
+        """
+
+        pass
+
+    def __encrypt_with_rsa(content, recipient_pk):
+        """ Encrypt content with RSAES-OAEP scheme
+
+        @developer: ???
+
+        This method handles an encryption of a *single* RSA block with a
+        specified above scheme. It does not handle splitting of a header into
+        several blocks. It has to be done by other method that would use this
+        one only for single block encryption purpose.
+
+        TODO: what is a maximum size of a content that can be padded and
+        encrypted given a particular size of RSA key?
+
+        :param content:         string content to encrypt (probably a part of
+                                ASN.1 DER-encoded MPHeader block)
+        :param recipient_pk:    instance of cryptography.hazmat.primitives.rsa
+                                .RSAPublicKey to use for a content encryption
+
+        :return: string encryption of an input content
+
+        """
+
+        pass
+
+    def __decrypt_with_rsa(content, user_sk):
+        """ Decrypt RSAES-OAEP encrypted content (single block)
+
+        @developer: ???
+
+        This method decrypts a single RSA ciphertext block only
+
+        :param content: string content to decrypt
+        :param user_sk: instance of cryptography.hazmat.primitives.rsa
+                        .RSAPrivateKey to use for a decryption
+
+        :return: string decryption of an input content
+
+        """
+
+    def __sign_content(content, user_sk):
+        """ Produce a signature of an input content using RSASSA-PSS scheme
+
+        @developer: ???
+
+        :param content: string content to sign
+        :param user_sk: instance of cryptography.hazmat.primitives.rsa.
+                        RSAPrivateKey
+
+        :return: string signature of the input content
+
+        """
+
+        pass
+
+    def __verify_signature(signature, signer_pk, content):
+        """ Verify RSASSA-PSS signature
+
+        @developer: ???
+
+        :param signature: string signature to verify
+        :param signer_pk: instance of cryptography.hazmat.primitives.
+                          rsa.RSAPublicKey that is a public key of a signer
+        :param content:   content to verify a signature of
+
+        :return: bool verification result
+
+        """
+
+        pass
+
     def __get_asn1_algorithm_identifier_der(oid_str):
         """ Generate ASN.1 structure for algorithm identifier
 
@@ -183,6 +301,21 @@ class Crypto(object):
         :param oid_str: string OID to encapsulate
 
         :return: pyasn1.type.univ.Sequence object
+
+        """
+
+        pass
+
+    def __get_random_bytes(spec_lst):
+        """ Generate random bytes
+
+        @developer: ???
+
+        :param spec_lst: list of integers that is lengths of bytestings to
+                         return
+
+        :return: list of random bytestrings with lengths corresponding to the
+                 ones from a spec list
 
         """
 
