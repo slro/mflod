@@ -55,3 +55,16 @@ class KeyManager(object):
             return key.fingerprint
         except Exception as ERROR:
             self.logger.error(ERROR)
+
+    def del_rsa_key(self, fingerprint):
+        """
+        Deletes RSA key pair of provided fingerprint
+
+        :param fingerprint: str (key HEX SHA1 fingerprint)
+        :return: void
+        """
+        try:
+            self.gpg.delete_keys(fingerprint, True)
+            self.gpg.delete_keys(fingerprint, False)
+        except Exception as ERROR:
+            self.logger.error(ERROR)
