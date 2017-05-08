@@ -1,9 +1,16 @@
 import logging
 import hmac
 from hashlib import sha1
-from pyasn1.codec.der.encoder import encode
+from pyasn1.codec.der.encoder import encode as asn1_encode
 from os import urandom
-from mflod.crypto.asn1_structures import *
+from datetime import datetime
+from asn1_structures import MPContent
+from constants import Constants as const
+from log_strings import LogStrings as logstr
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+
 
 class Crypto(object):
     """ Class that handles assembly of FLOD protocol message packet
@@ -17,8 +24,9 @@ class Crypto(object):
     can be found in module README.md file: https://goo.gl/leWWa4
 
     Developers:
-        - ddnomad (Artem Fliunt)
         - vsmysle (Kyrylo Voronchenko)
+        - ddnomad (Artem Fliunt)
+        - Sofiya Demchuk
 
     """
 
@@ -26,7 +34,7 @@ class Crypto(object):
         """ Initialization method """
 
         self.logger = logging.getLogger(__name__)
-        self.logger.debug("created instance of Crypto module")
+        self.logger.debug(logstr.CRYPTO_CLASS_INIT)
 
     def assemble_message_packet(msg_content, recipient_pk, sign=None):
         """ Assemble FLOD message packet
@@ -120,22 +128,41 @@ class Crypto(object):
 
         pass
 
-    def __assemble_content_block(content, key):
+    def __assemble_content_block(self, content, key, iv):
         """ Create an ASN.1 DER-encoded structure of a content block
 
-        @developer: ???
+        @developer: ddnomad
 
         The corresponding ASN.1 structure from a documentation is
         MPContentContainer
 
         :param content: string content to encapsulate
-        :param key: string AES key to use for encryption
+        :param key:     string AES key to use for encryption
+        :param iv:      string CBC mode initialization vector
 
         :return: string DER-encoding of MPContentContainer ASN.1 structure
 
         """
 
-        pass
+        # logger entry
+        self.logger.debug(logstr.ASSEMBLE_CONTENT_BLOCK_CALL)
+
+        # create an ASN.1 structure of MPContent and DER-encode it
+        mp_content_pt = MPContent()
+        mp_content_pt['timestamp'] = datetime.utcnow(). \
+            strftime(const.TIMESTAMP_FORMAT)
+        mp_content_pt['content'] = content
+        mp_content_pt_der = asn1_encode(mp_content_pt)
+
+        # initialize necessary crypto backend instances
+        backend = default_backend()
+        aes = Cipher(algorithms.AES(key), modes.CBC(iv),
+                backend=backend).encryptor()
+
+        
+
+    
+
 
     def __disassemble_content_block(content, key):
         """ Decrypt and decode content from a content block
