@@ -252,7 +252,7 @@ Common OIDs used in message packet structure are the following:
  - **rsassa-pss(10)**, OID `1.2.840.113549.1.1.10`: RSA signature standard used
    (defined in PKCS#1 [RFC 2313](https://tools.ietf.org/html/rfc2313)). The
    hash function used to compress content to sign is SHA1.
- - **sha1(1)**, OID `1.3.6.1.4.1.22554.1.1`: hashing algorithm used in several
+ - **sha1(1)**, OID `1.3.14.3.2.26`: hashing algorithm used in several
    parts of message packet structure (HMAC, signing)
  - **aes128-CBC(2)**, OID `2.16.840.1.101.3.4.1.2`: AES encryption in CBC mode
    used to encrypt an actual message content. The padding used is PKCS#7.
