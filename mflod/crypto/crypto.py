@@ -5,9 +5,9 @@ from pyasn1.type import univ, namedtype
 from pyasn1.codec.der.encoder import encode as asn1_encode
 from os import urandom
 from datetime import datetime
-from asn1_structures import MPContent
-from constants import Constants as const
-from log_strings import LogStrings as logstr
+from mflod.crypto.asn1_structures import MPContent
+from mflod.crypto.constants import Constants as const
+from mflod.crypto.log_strings import LogStrings as logstr
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
@@ -155,14 +155,14 @@ class Crypto(object):
         mp_content_pt['content'] = content
         mp_content_pt_der = asn1_encode(mp_content_pt)
 
+        # pad MPContent with PKCS#7
+        
+
         # initialize necessary crypto backend instances
         backend = default_backend()
         aes = Cipher(algorithms.AES(key), modes.CBC(iv),
                 backend=backend).encryptor()
 
-        
-
-    
 
 
     def __disassemble_content_block(content, key):
