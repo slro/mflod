@@ -1,7 +1,6 @@
 import logging
 import hmac
 from hashlib import sha1
-from pyasn1.type import univ, namedtype
 from pyasn1.codec.der.encoder import encode
 from os import urandom
 from mflod.crypto.asn1_structures import *
@@ -191,10 +190,10 @@ class Crypto(object):
 
         return encode(hmac_block)
 
-    def __verify_hmac(hmac_blk, key, content_blk):
+    def __verify_hmac(self, hmac_blk, key, content_blk):
         """ Verify content HMAC
 
-        @developer: ???
+        @developer: vsmysle
 
         :param hmac_blk:        string DER-encoded ASN.1 structure of HMAC
                                 block (MPHMACContainer)
