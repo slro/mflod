@@ -338,14 +338,16 @@ signed or not.
 ```
 MessagePacket ::= SEQUENCE {
     protocolVersion          INTEGER,
-    headerBlock              MPHeaderContainer,
-    hmacBlock                MPHMACContainer,
-    contentBlock             MPContentContainer
+    headerBlock              OCTET STRING encapsulates MPHeaderContainer,
+    hmacBlock                OCTET STRING encapsulates MPHMACContainer,
+    contentBlock             OCTET STRING encapsulates MPContentContainer
 }
 ```
 
 The structure above encapsulates the whole content of the message packet. This
-structure is then DER-encoded and sent to the recipient.
+structure is then DER-encoded and sent to the recipient. All fields except for
+a `protocolVersion` are DER-encoded into octet string before the whole `MessagePacket`
+is also encoded into DER.
 
 MFlod Specific Implementation Details
 -------------------------------------
