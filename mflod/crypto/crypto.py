@@ -322,8 +322,8 @@ class Crypto(object):
         len_spec = ord(der.pop(0))
         if len_spec & MSB_MASK == MSB_MASK:
             len_of_len = len_spec & LEN_SPEC_MASK
-            return len_of_len + 3
-        return 3
+            return len_of_len + 4
+        return 4
 
     def __assemble_content_block(self, content, key, iv):
         """ Create an ASN.1 DER-encoded structure of a content block
