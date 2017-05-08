@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 # crypto module headers and helpers imports
+import mflod.crypto.exceptions as exc
 import mflod.crypto.asn1_structures as asn1_dec
 from mflod.crypto.constants import Constants as const
 from mflod.crypto.log_strings import LogStrings as logstr
@@ -18,6 +19,7 @@ import hashlib
 from os import urandom
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.hashes import SHA1
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
@@ -192,10 +194,10 @@ class Crypto(object):
         return asn1_encode(message_packet)
 
 
-    def disassemble_message_packet(msg_packet, get_sks_func, get_pk_byid_func):
+    def disassemble_message_packet(self, msg_packet, get_sks_func, get_pk_byid_func):
         """ Attempt to disassemble FLOD message packet that was received
 
-        @developer: ???
+        @developer: ddnomad
 
         Disassembly involves test decryption of header block with all available
         private keys of a user. If decryption was successful then the message
@@ -232,11 +234,13 @@ class Crypto(object):
 
         :return: one of the following lists (see supplementary exit codes
                  paragraph for details):
-                    - [dec_msg, 0, pgp_key_id]
-                    - [dec_msg, 1, sign_pk]
-                    - [dec_msg, 2]
-                    - [dec_msg, 3]
+                    - [timestamp, dec_msg, 0, pgp_key_id]
+                    - [timestamp, dec_msg, 1, sign_pk]
+                    - [timestamp, dec_msg, 2]
+                    - [timestamp, dec_msg, 3]
                 The values in lists are the following:
+                    - timestamp:    instance of datetime.datetime time when
+                                    the message was composed by a sender
                     - dec_msg:      string decryption of a message received
                     - pgp_key_id:   string PGPKeyID of a public key that
                                     verified a signature
@@ -244,11 +248,187 @@ class Crypto(object):
                                     primitives.rsa.RSAPublicKey that verified a
                                     signature
 
-        :raise ???
+        :raise mflod.crypto.exceptions.NoMatchingRSAKeyForMessage,
+               mflod.crypto.exceptions.SignatureVerificationFailed,
+               mflod.crypto.exceptions.HMACVerificationFailed
 
         """
 
-        pass
+        # log entry
+        self.logger.debug(logstr.DISASSEMBLE_MESSAGE_PACKET_CALL)
+
+        # decode message packet from DER and get header block
+        message_packet_asn1 = asn1_decode(msg_packet)
+        header_block_asn1 = message_packet_asn1[0][1]
+
+        # get encrypted from a header container
+        mp_header_ct = bytes(header_block_asn1[0][1])
+
+        # entering brute-force loop
+        self.logger.debug(logstr.ATTEMPT_DECRYPT_HEADER)
+
+        # try to decrypt a header with all available user keys
+        for user_sk in get_sks_func():
+
+            # determine a size of a current user secret key
+            key_size = user_sk.key_size
+
+            # get decrypted first RSA block of MPHeader
+            try:
+                mp_header_pt_init_block = self.__decrypt_with_rsa(
+                        mp_header_ct[key_size], user_sk)
+            except InvalidKey:
+
+                # probably key size doesn't match
+                self.logger.debug(logstr.INVALID_RSA_KEY)
+                continue
+
+            # calculate identification string offset
+            offset = self.__calculate_der_id_string_offset(
+                    list(mp_header_pt_init_block))
+
+            # check whether id string matches
+            if not mp_header_pt_init_block[offset, offset + 4] == \
+                    bytes(const.IS):
+
+                # key doesn't fit
+                self.logger.debug(logstr.WRONG_RSA_KEY)
+                continue
+
+            # found a matching key - message can be decrypted
+            else:
+
+                self.logger.info(logstr.MESSAGE_FOR_USER)
+
+                # init exit code (optimistic)
+                exit_code = 0
+                signer_info = None
+
+                # create a variable to hold the MPHeader plaintext
+                mp_header_pt = mp_header_pt_init_block
+
+                # decrypt the whole MPHeader DER
+                for rsa_block in mp_header_ct[key_size, len(
+                        mp_header_ct), key_size]:
+
+                    # append decryted chunks
+                    mp_header_pt += self.__decrypt_with_rsa(rsa_block, user_sk)
+
+                # decode MPHeader from DER
+                mp_header_pt_asn1 = asn1_decode(mp_header_pt)
+
+                # determine whether the header was signed
+                sign_oid = str(mp_header_pt_asn1[0][1])
+                pgp_key_id = str(mp_header_pt_asn1[0][2])
+                signature = bytes(mp_header_pt_asn1[0][3])
+                hmac_key = bytes(mp_header_pt_asn1[0][4])
+                aes_key = bytes(mp_header_pt_asn1[0][5])
+                sign_content = hmac_key + aes_key
+
+                # there is a signature
+                if sign_oid != const.NO_SIGN_OID:
+
+                    self.logger.info(logstr.MESSAGE_IS_SIGNED)
+
+                    # get signer public key
+                    signer_cands = get_pk_byid_func(pgp_key_id)
+
+                    # there is a public key
+                    if isinstance(signer_cands, RSAPublicKey):
+                        if self.__verify_signature(signature, signer_cands,
+                                                   sign_content):
+                            signer_info = pgp_key_id
+                        else:
+                            # TODO: more verbose
+                            raise exc.SignatureVerificationFailed("")
+
+                    # nothing found for this PGP ID
+                    elif signer_cands is None:
+                        self.logger.warn(logstr.SIGN_CANNOT_VERIF)
+                        exit_code = 3
+
+                    # the PGP ID is zeros so signer used non-PGP key
+                    # get_pk_byid_func returned a list of all user's
+                    # non-PGP public keys (from an internal key chain
+                    else:
+
+                        # just in case
+                        assert(isinstance(signer_cands, tuple))
+
+                        self.logger.info(logstr.NON_PGP_KEY_SIGN)
+
+                        # brute over all user non-PGP keys in attempt to verify
+                        for cand_key in signer_cands:
+
+                            # again just in case
+                            assert(isinstance(cand_key, RSAPublicKey))
+
+                            verif_ok = self.__verify_signature(signature,
+                                                               cand_key,
+                                                               sign_content)
+
+                            if verif_ok:
+                                break
+
+                        # update exit code state
+                        if verif_ok:
+                            exit_code = 1
+                            signer_info = cand_key
+                        else:
+                            exit_code = 3
+
+                # there is no signature in MPHeader
+                else:
+
+                    self.logger.info(logstr.NOT_SIGNED_MESSAGE)
+                    exit_code = 2
+
+                    # retrieve MPHMACContainer and MPContentContainer
+                    mp_hmac_container = message_packet_asn1[0][2]
+                    mp_content_container = message_packet_asn1[0][3]
+
+                    # verify hmac
+                    hmac_ver_res = self.__verify_hmac(mp_hmac_container,
+                            hmac_key, asn1_encode(mp_content_container))
+
+                    if not hmac_ver_res:
+                        # TODO: more verbose str
+                        raise exc.HMACVerificationFailed("")
+
+                    # all checks were successful - decrypt content
+                    timestamp, message = self.__disassemble_content_block(
+                            mp_content_container, aes_key)
+
+                    self.logger.info(logstr.MSG_CONTENT_WAS_RECOVERED)
+
+                    # return correct result
+                    if signer_info:
+                        return timestamp, message, exit_code, signer_info
+                    return timestamp, message, exit_code
+
+        # TODO: create more verbose exception
+        self.logger.info(logstr.MESSAGE_NOT_FOR_USER)
+        raise exc.NoMatchingRSAKeyForMessage("")
+
+    def __calculate_der_id_string_offset(der):
+        """ Determine an offset to identification string in header fragment
+
+        :param der: DER-encoded fragment of MPHeader ASN.1 structure
+
+        :return: integer offset to an indentification string
+
+        """
+
+        # bitmasks declaration
+        MSB_MASK = 0x80
+        LEN_SPEC_MASK = 0x7F
+
+        der.pop(0)
+        len_spec = ord(der.pop(0))
+        if len_spec & MSB_MASK == MSB_MASK:
+            len_of_len = len_spec & LEN_SPEC_MASK
+            return len_of_len + 4
+        return 4
 
     def __assemble_content_block(self, content, key, iv):
         """ Create an ASN.1 DER-encoded structure of a content block
@@ -668,4 +848,3 @@ class Crypto(object):
 
         """
         return key_size // 8 - 42
-

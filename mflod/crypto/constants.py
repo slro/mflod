@@ -16,3 +16,4 @@ class Constants(object):
 
     # Version
     PROTOCOL_VERSION = 0
+
