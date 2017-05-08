@@ -1,11 +1,10 @@
 import logging
 import hmac
 from hashlib import sha1
-from pyasn1.type import univ, namedtype
 from pyasn1.codec.der.encoder import encode as asn1_encode
 from os import urandom
 from datetime import datetime
-from mflod.crypto.asn1_structures import MPContent
+import mflod.crypto.asn1_structures as asn1_dec
 from mflod.crypto.constants import Constants as const
 from mflod.crypto.log_strings import LogStrings as logstr
 from cryptography.hazmat.primitives import padding
@@ -149,21 +148,24 @@ class Crypto(object):
         self.logger.debug(logstr.ASSEMBLE_CONTENT_BLOCK_CALL)
 
         # create an ASN.1 structure of MPContent and DER-encode it
-        mp_content_pt = MPContent()
+        mp_content_pt = asn1_dec.MPContent()
         mp_content_pt['timestamp'] = datetime.utcnow(). \
             strftime(const.TIMESTAMP_FORMAT)
         mp_content_pt['content'] = content
         mp_content_pt_der = asn1_encode(mp_content_pt)
 
-        # pad MPContent with PKCS#7
-        
+        # encrypt MPContent DER
+        mp_content_ct = self.__encrypt_with_aes(mp_content_pt_der, key, iv)
 
-        # initialize necessary crypto backend instances
-        backend = default_backend()
-        aes = Cipher(algorithms.AES(key), modes.CBC(iv),
-                backend=backend).encryptor()
+        # wrap MPContent into MPContentContainer
+        mp_content_container = asn1_dec.MPContentContainer()
+        mp_content_container['initializationVector'] = iv
+        mp_content_container['encryptionAlgorithm'] = \
+            self.__get_asn1_algorithm_identifier(const.AES_128_CBC)
+        mp_content_container['encryptedContent'] = mp_content_ct
 
-
+        # encode MPContentContainer and return it
+        return asn1_encode(mp_content_container)
 
     def __disassemble_content_block(content, key):
         """ Decrypt and decode content from a content block
@@ -257,19 +259,29 @@ class Crypto(object):
         hmac_digest.update(content)
         return hmac_digest.digest()
 
-    def __encrypt_with_aes(content, key):
+    def __encrypt_with_aes(self, content, key, iv):
         """ Encrypt content with AES-128-CBC (with PCKS#7 padding)
 
         @developer: ???
 
         :param content: string DER-encoded MPContent ASN.1 structure to encrypt
         :param key:     string key to use for encryption
+        :param iv:      string CBC mode initialization vector
 
         :return: string encryption of an input content
 
         """
 
-        pass
+        # log entry
+        self.logger.debug(logstr.AES_ENC_CALL)
+
+        # pad MPContent with PKCS#7
+        padder = padding.PKCS7()
+
+        # initialize necessary crypto backend instances
+        backend = default_backend()
+        aes = Cipher(algorithms.AES(key), modes.CBC(iv),
+                backend=backend).encryptor()
 
     def __decrypt_with_aes(content, key):
         """ Decrypt AES-128-CBC encrypted content (PCKS#7 padded)
@@ -355,7 +367,7 @@ class Crypto(object):
 
         pass
 
-    def __get_asn1_algorithm_identifier_der(self, oid_str):
+    def __get_asn1_algorithm_identifier(self, oid_str):
         """ Generate ASN.1 structure for algorithm identifier
 
         @developer: vsmysle
@@ -374,7 +386,7 @@ class Crypto(object):
         ai = AlgorithmIdentifier()
         ai['algorithm'] = oid_str
         ai['parameters'] = univ.Null()
-        return encode(ai)
+        return ai
 
     def __get_random_bytes(self, spec_lst):
         """ Generate random bytes
