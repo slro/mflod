@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
-
+from cryptography.exceptions import InvalidSignature, InvalidKey
 
 class Crypto(object):
     """ Class that handles assembly of FLOD protocol message packet
@@ -70,6 +70,9 @@ class Crypto(object):
         :raise: ???
 
         """
+        # NOTE:
+        # A 2048-bit key can encrypt up to (2048/8) – 42 = 256 – 42 = 214 bytes.
+        # A 1024-bit key can encrypt up to (1024/8) - 42 = 128 - 42 = 85 bytes.
 
         pass
 
@@ -202,7 +205,7 @@ class Crypto(object):
         digest = self.__generate_hmac(content, key)
 
         # oid for SHA1 hash function
-        oid = '1.3.14.3.2.26'
+        oid = const.SHA1_OID
 
         # creating instance of AlgorithmIdentifier class
         ai = asn1_dec.AlgorithmIdentifier()
@@ -246,7 +249,9 @@ class Crypto(object):
         decoded_hmac_block = asn1_decode(hmac_blk)[0][1]
 
         if decoded_hmac_block == hmac_of_content_blk:
+            self.logger.info("Successful HMAC verification!")
             return True
+        self.logger.warn("HMAC verification failed!")
         return False
 
     def __generate_hmac(self, content, key):
@@ -349,21 +354,25 @@ class Crypto(object):
         # TODO: add exceptions
 
         self.logger.debug("RSA decryption ...")
-
-        plaintext = user_sk.decrypt(
-            content, asym_padding.OAEP(
-                mgf=asym_padding.MGF1(algorithm=SHA1()),
-                algorithm=SHA1(),
-                label=None
+        try:
+            plaintext = user_sk.decrypt(
+                content, asym_padding.OAEP(
+                    mgf=asym_padding.MGF1(algorithm=SHA1()),
+                    algorithm=SHA1(),
+                    label=None
+                )
             )
-        )
+        except InvalidKey:
+            self.logger.warn("Invalid key!")
+            return
 
+        self.logger.info("Successfully decrypted!")
         return plaintext
 
     def __sign_content(self, content, user_sk):
         """ Produce a signature of an input content using RSASSA-PSS scheme
 
-        @developer: ???
+        @developer: vsmysle
 
         :param content: string content to sign
         :param user_sk: instance of cryptography.hazmat.primitives.rsa.
@@ -373,12 +382,31 @@ class Crypto(object):
 
         """
 
-        pass
+        # TODO: add exceptions
+
+        self.logger.debug("Producing a signature using RSASSA-PSS scheme...")
+        # creating signer that will sign our content
+        try:
+            signer = user_sk.signer(
+                # we use RSASSA-PSS padding for the signature scheme
+                asym_padding.PSS(
+                    mgf=asym_padding.MGF1(SHA1()),
+                    salt_length=asym_padding.PSS.MAX_LENGTH
+                ),
+                SHA1()
+            )
+        except InvalidKey:
+            self.logger.warn("Invalid key!")
+            return
+        signer.update(content)
+        signature = signer.finalize()
+        self.logger.info("Successfully produces signature!")
+        return signature
 
     def __verify_signature(self, signature, signer_pk, content):
         """ Verify RSASSA-PSS signature
 
-        @developer: ???
+        @developer: vsmysle
 
         :param signature: string signature to verify
         :param signer_pk: instance of cryptography.hazmat.primitives.
@@ -388,8 +416,22 @@ class Crypto(object):
         :return: bool verification result
 
         """
-
-        pass
+        self.logger.debug("Verify RSASSA-PSS signature...")
+        try:
+            signer_pk.verify(
+                signature,
+                content,
+                asym_padding.PSS(
+                    mgf=asym_padding.MGF1(SHA1()),
+                    salt_length=asym_padding.PSS.MAX_LENGTH
+                ),
+                SHA1()
+            )
+        except InvalidSignature:
+            self.logger.warn("Signature verification failed!")
+            return False
+        self.logger.info("Successful signature verification!")
+        return True
 
     def __get_asn1_algorithm_identifier_der(self, oid_str):
         """ Generate ASN.1 structure for algorithm identifier
