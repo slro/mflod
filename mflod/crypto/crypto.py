@@ -13,8 +13,9 @@ class Crypto(object):
     can be found in module README.md file: https://goo.gl/leWWa4
 
     Developers:
-        - ddnomad (Artem Fliunt)
         - vsmysle (Kyrylo Voronchenko)
+        - ddnomad (Artem Fliunt)
+        - Sofiya Demchuk
 
     """
 
