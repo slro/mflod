@@ -1,13 +1,17 @@
 import logging
 import hmac
 from hashlib import sha1
+from cryptography.hazmat.primitives.hashes import SHA1
 from pyasn1.codec.der.encoder import encode as asn1_encode
+from pyasn1.codec.der.decoder import decode as asn1_decode
 from os import urandom
 from datetime import datetime
+from pyasn1.type import univ
 import mflod.crypto.asn1_structures as asn1_dec
 from mflod.crypto.constants import Constants as const
 from mflod.crypto.log_strings import LogStrings as logstr
 from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
@@ -167,7 +171,7 @@ class Crypto(object):
         # encode MPContentContainer and return it
         return asn1_encode(mp_content_container)
 
-    def __disassemble_content_block(content, key):
+    def __disassemble_content_block(self, content, key):
         """ Decrypt and decode content from a content block
 
         @developer: ???
@@ -176,11 +180,35 @@ class Crypto(object):
                         encrypted content
         :param key:     string AES key to be used for decryption
 
-        :return: string decrypted message
+        :return: list of the following values:
+                    [0] datetime.datetime timestamp object
+                    [1] string decrypted message
 
         """
 
-        pass
+        # log entry
+        self.logger.debug(logstr.DISASSEMBLE_CONTENT_BLOCK_CALL)
+
+        # decode MPContentContainer from DER
+        # TODO: try-except in a case when decoding failed
+        mp_content_container_asn1 = asn1_decode(content)
+
+        # recover values that are necessary for decryption
+        # TODO: verify encryptionAlgorithm OID
+        iv = bytes(mp_content_container_asn1[0][0])
+        enc_content = str(mp_content_container_asn1[0][2])
+
+        # decrypt DER-encoded MPContent
+        mp_content_pt_der = self.__decrypt_with_aes(enc_content, key, iv)
+
+        # recover timestamp and message from DER-encoded MPContent
+        mp_content_pt_asn1 = asn1_decode(mp_content_pt_der)
+        timestamp = datetime.strptime(str(mp_content_pt_asn1[0][0]),
+                                      const.TIMESTAMP_FORMAT)
+        message = str(mp_content_pt_asn1[0][1])
+
+        # return the resulting data
+        return timestamp, message
 
     def __assemble_hmac_block(self, content, key):
         """ Produce HMAC block ASN.1 structure (MPHMACContainer)
@@ -205,25 +233,25 @@ class Crypto(object):
         oid = '1.3.14.3.2.26'
 
         # creating instance of AlgorithmIdentifier class
-        ai = AlgorithmIdentifier()
+        ai = asn1_dec.AlgorithmIdentifier()
 
         # setting corresponding parameters
         ai['algorithm'] = oid
         ai['parameters'] = univ.Null()
 
         # creating instance of AlgorithmIdentifier class
-        hmac_block = MPHMACContainer()
+        hmac_block = asn1_dec.MPHMACContainer()
 
         # setting corresponding parameters
         hmac_block['digestAlgorithm'] = ai
         hmac_block['digest'] = digest
 
-        return encode(hmac_block)
+        return asn1_encode(hmac_block)
 
-    def __verify_hmac(hmac_blk, key, content_blk):
+    def __verify_hmac(self, hmac_blk, key, content_blk):
         """ Verify content HMAC
 
-        @developer: ???
+        @developer: vsmysle
 
         :param hmac_blk:        string DER-encoded ASN.1 structure of HMAC
                                 block (MPHMACContainer)
@@ -234,8 +262,20 @@ class Crypto(object):
         :return: bool verification result
 
         """
+        # TODO: add exceptions
 
-        pass
+        self.logger.debug("Verifying  HMAC...")
+        2
+        # calculation of the HMAC digest for received content block
+        hmac_of_content_blk = self.__generate_hmac(content_blk, key)
+
+        # get digest from the HMAC block
+        # TODO: check index !
+        decoded_hmac_block = asn1_decode(hmac_blk)[0][1]
+
+        if decoded_hmac_block == hmac_of_content_blk:
+            return True
+        return False
 
     def __generate_hmac(self, content, key):
         """ Generate HMAC for in input content and key
@@ -262,7 +302,7 @@ class Crypto(object):
     def __encrypt_with_aes(self, content, key, iv):
         """ Encrypt content with AES-128-CBC (with PCKS#7 padding)
 
-        @developer: ???
+        @developer: ddnomad
 
         :param content: string DER-encoded MPContent ASN.1 structure to encrypt
         :param key:     string key to use for encryption
@@ -276,31 +316,56 @@ class Crypto(object):
         self.logger.debug(logstr.AES_ENC_CALL)
 
         # pad MPContent with PKCS#7
-        padder = padding.PKCS7()
+        padder = padding.PKCS7(const.AES_BLOCK_SIZE).padder()
+        padded_content = padder.update(content) + padder.finalize()
 
-        # initialize necessary crypto backend instances
+        # initialize AES cipher instance
         backend = default_backend()
         aes = Cipher(algorithms.AES(key), modes.CBC(iv),
-                backend=backend).encryptor()
+                     backend=backend).encryptor()
 
-    def __decrypt_with_aes(content, key):
+        # encrypt padded content
+        content_ct = aes.update(padded_content) + aes.finalize()
+
+        # return the resulting ciphertext
+        return content_ct
+
+    def __decrypt_with_aes(self, content, key, iv):
         """ Decrypt AES-128-CBC encrypted content (PCKS#7 padded)
 
-        @developer: ???
+        @developer: ddnomad
 
         :param content: string ciphertext of MPContent ASN.1 structure
         :param key:     string AES secret key
+        :param iv:      string CBC mode initialization vector
 
         :return: string decrypted DER-encoded MPContent ASN.1 structure
 
         """
 
-        pass
+        # log entry
+        self.logger.debug(logstr.AES_DEC_CALL)
 
-    def __encrypt_with_rsa(content, recipient_pk):
+        # initialize AES cipher instance
+        backend = default_backend()
+        aes = Cipher(algorithms.AES(key), modes.CBC(iv),
+                     backend=backend).decryptor()
+
+        # decrypt content
+        dec_content = aes.update(content) + aes.finalize()
+
+        # unpad content
+        unpadder = padding.PKCS7(const.AES_BLOCK_SIZE).padder()
+        dec_content_unpadded = unpadder.update(dec_content) + \
+            unpadder.finalize()
+
+        # return the resulting plaintext content
+        return dec_content_unpadded
+
+    def __encrypt_with_rsa(self, content, recipient_pk):
         """ Encrypt content with RSAES-OAEP scheme
 
-        @developer: ???
+        @developer: vsmysle
 
         This method handles an encryption of a *single* RSA block with a
         specified above scheme. It does not handle splitting of a header into
@@ -318,10 +383,18 @@ class Crypto(object):
         :return: string encryption of an input content
 
         """
+        self.logger.debug("RSA encryption ...")
 
-        pass
+        ciphertext = recipient_pk.encrypt(
+            content, asym_padding.OAEP(
+                mgf=asym_padding.MGF1(algorithm=SHA1()),
+                algorithm=SHA1(),
+                label=None
+            )
+        )
+        return ciphertext
 
-    def __decrypt_with_rsa(content, user_sk):
+    def __decrypt_with_rsa(self, content, user_sk):
         """ Decrypt RSAES-OAEP encrypted content (single block)
 
         @developer: ???
@@ -336,7 +409,7 @@ class Crypto(object):
 
         """
 
-    def __sign_content(content, user_sk):
+    def __sign_content(self, content, user_sk):
         """ Produce a signature of an input content using RSASSA-PSS scheme
 
         @developer: ???
@@ -351,7 +424,7 @@ class Crypto(object):
 
         pass
 
-    def __verify_signature(signature, signer_pk, content):
+    def __verify_signature(self, signature, signer_pk, content):
         """ Verify RSASSA-PSS signature
 
         @developer: ???
@@ -381,9 +454,11 @@ class Crypto(object):
         # TODO: add exceptions
 
         # create the instance of AlgorithmIdentifier
-        self.logger.debug("Receiving ASN.1 AlgorithmIdentifier structure with "
-                      "OID=%s") % oid_str
-        ai = AlgorithmIdentifier()
+        self.logger.debug("Receiving ASN.1 AlgorithmIdentifier"
+                          " structure with OID=%s") % oid_str
+        ai = asn1_dec.AlgorithmIdentifier()
+
+        # set corresponding parameters
         ai['algorithm'] = oid_str
         ai['parameters'] = univ.Null()
         return ai

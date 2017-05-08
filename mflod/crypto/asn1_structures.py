@@ -5,6 +5,8 @@ class AlgorithmIdentifier(univ.Sequence):
     """ AlgorithmIdentifier class inherits pyasn1.type.univ.Sequence class
     and encapsulated AlgorithmIdentifier structure in it
 
+    @developer: vsmysle
+
     You need to set these parameters:
         algorithm: string representing OID of the Object Identifier
         parameters: pyasn1.type.univ.Null()
@@ -25,6 +27,8 @@ class AlgorithmIdentifier(univ.Sequence):
 class MPContentContainer(univ.Sequence):
     """ MPContentContainer class inherits pyasn1.type.univ.Sequence class
     and encapsulates MPContentContainer structure in it
+
+    @developer: vsmysle
 
     You need to set these parameters:
         initializationVector: string representing initializationVector
@@ -53,6 +57,8 @@ class MPContentContainer(univ.Sequence):
 class MPContent(univ.Sequence):
     """ MPContent class inherits pyasn1.type.univ.Sequence class
     and encapsulates MPContent structure in it
+
+    @developer: vsmysle
 
     You need to set these parameters:
         timestamp: string representing current time in YYMMDDhhmmssZ format
@@ -90,6 +96,8 @@ class MPHMACContainer(univ.Sequence):
 class MPHeaderContainer(univ.Sequence):
     """ TODO docstring
 
+    @developer: vsmysle
+
     """
     componentType = namedtype.NamedTypes(
         namedtype.NamedType('encryptionAlgorithm', AlgorithmIdentifier()),
@@ -99,6 +107,8 @@ class MPHeaderContainer(univ.Sequence):
 
 class MPHeader(univ.Sequence):
     """ TODO docstring
+
+    @developer: vsmysle
 
     """
     componentType = namedtype.NamedTypes(
@@ -114,6 +124,8 @@ class MPHeader(univ.Sequence):
 
 class MessagePacket(univ.Sequence):
     """ TODO docstring
+
+    @developer: vsmysle
 
     """
     componentType = namedtype.NamedTypes(
