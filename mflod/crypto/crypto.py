@@ -1,15 +1,16 @@
 import logging
 import hmac
-from hashlib import sha1
+from cryptography.hazmat.primitives.hashes import SHA1
 from pyasn1.codec.der.encoder import encode as asn1_encode
 from pyasn1.codec.der.decoder import decode as asn1_decode
 from os import urandom
 from datetime import datetime
 from pyasn1.type import univ
-from mflod.crypto.asn1_structures import MPContent, AlgorithmIdentifier, MPHMACContainer
+import mflod.crypto.asn1_structures as asn1_dec
 from mflod.crypto.constants import Constants as const
 from mflod.crypto.log_strings import LogStrings as logstr
 from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
@@ -150,7 +151,7 @@ class Crypto(object):
         self.logger.debug(logstr.ASSEMBLE_CONTENT_BLOCK_CALL)
 
         # create an ASN.1 structure of MPContent and DER-encode it
-        mp_content_pt = MPContent()
+        mp_content_pt = asn1_dec.MPContent()
         mp_content_pt['timestamp'] = datetime.utcnow(). \
             strftime(const.TIMESTAMP_FORMAT)
         mp_content_pt['content'] = content
@@ -204,14 +205,14 @@ class Crypto(object):
         oid = '1.3.14.3.2.26'
 
         # creating instance of AlgorithmIdentifier class
-        ai = AlgorithmIdentifier()
+        ai = asn1_dec.AlgorithmIdentifier()
 
         # setting corresponding parameters
         ai['algorithm'] = oid
         ai['parameters'] = univ.Null()
 
         # creating instance of AlgorithmIdentifier class
-        hmac_block = MPHMACContainer()
+        hmac_block = asn1_dec.MPHMACContainer()
 
         # setting corresponding parameters
         hmac_block['digestAlgorithm'] = ai
@@ -235,10 +236,13 @@ class Crypto(object):
         """
         # TODO: add exceptions
 
+        self.logger.debug("Verifying  HMAC...")
+        2
         # calculation of the HMAC digest for received content block
         hmac_of_content_blk = self.__generate_hmac(content_blk, key)
 
         # get digest from the HMAC block
+        # TODO: check index !
         decoded_hmac_block = asn1_decode(hmac_blk)[0][1]
 
         if decoded_hmac_block == hmac_of_content_blk:
@@ -295,10 +299,10 @@ class Crypto(object):
 
         pass
 
-    def __encrypt_with_rsa(content, recipient_pk):
+    def __encrypt_with_rsa(self, content, recipient_pk):
         """ Encrypt content with RSAES-OAEP scheme
 
-        @developer: ???
+        @developer: vsmysle
 
         This method handles an encryption of a *single* RSA block with a
         specified above scheme. It does not handle splitting of a header into
@@ -316,10 +320,18 @@ class Crypto(object):
         :return: string encryption of an input content
 
         """
+        self.logger.debug("RSA encryption ...")
 
-        pass
+        ciphertext = recipient_pk.encrypt(
+            content, asym_padding.OAEP(
+                mgf=asym_padding.MGF1(algorithm=SHA1()),
+                algorithm=SHA1(),
+                label=None
+            )
+        )
+        return ciphertext
 
-    def __decrypt_with_rsa(content, user_sk):
+    def __decrypt_with_rsa(self, content, user_sk):
         """ Decrypt RSAES-OAEP encrypted content (single block)
 
         @developer: ???
@@ -334,7 +346,7 @@ class Crypto(object):
 
         """
 
-    def __sign_content(content, user_sk):
+    def __sign_content(self, content, user_sk):
         """ Produce a signature of an input content using RSASSA-PSS scheme
 
         @developer: ???
@@ -349,7 +361,7 @@ class Crypto(object):
 
         pass
 
-    def __verify_signature(signature, signer_pk, content):
+    def __verify_signature(self, signature, signer_pk, content):
         """ Verify RSASSA-PSS signature
 
         @developer: ???
@@ -381,7 +393,7 @@ class Crypto(object):
         # create the instance of AlgorithmIdentifier
         self.logger.debug("Receiving ASN.1 AlgorithmIdentifier"
                           " structure with OID=%s") % oid_str
-        ai = AlgorithmIdentifier()
+        ai = asn1_dec.AlgorithmIdentifier()
 
         # set corresponding parameters
         ai['algorithm'] = oid_str
