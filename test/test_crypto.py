@@ -1,7 +1,6 @@
 import unittest
 import logging
 from mflod.crypto.crypto import Crypto
-from pyasn1.codec.der.encoder import encode as asn1_encode
 from pyasn1.type import univ
 from os import urandom
 from pyasn1.codec.der.encoder import encode
@@ -103,7 +102,7 @@ class TestCrypto(unittest.TestCase):
             self.assertTrue(res)
 
     def test_generate_hmac(self):
-        self.crypto_obj._Crypto__generate_hmac(asn1_encode(
+        self.crypto_obj._Crypto__generate_hmac(encode(
                             univ.OctetString("test_me")),
                             urandom(20)
                         )
@@ -111,18 +110,18 @@ class TestCrypto(unittest.TestCase):
     def test_assemble_hmac_block(self):
         self.crypto_obj._Crypto__assemble_hmac_block(
             self.crypto_obj._Crypto__generate_hmac(
-                asn1_encode(univ.OctetString("test_me")),
+                encode(univ.OctetString("test_me")),
                 urandom(20)), urandom(20))
 
     def test_verify_hmac(self):
         key = urandom(20)
         msg = urandom(10000)
         hmac_digest = self.crypto_obj._Crypto__generate_hmac(
-                asn1_encode(univ.OctetString(msg)), key)
+                encode(univ.OctetString(msg)), key)
 
         hmac_blk = self.crypto_obj._Crypto__assemble_hmac_block(
             self.crypto_obj._Crypto__generate_hmac(
-                asn1_encode(univ.OctetString(msg)), key), key)
+                encode(univ.OctetString(msg)), key), key)
         self.crypto_obj.\
             _Crypto__verify_hmac(hmac_blk, key, hmac_digest)
 
@@ -140,6 +139,6 @@ class TestCrypto(unittest.TestCase):
             backend=default_backend()
         )
         test_content = self.crypto_obj._Crypto__encrypt_with_rsa(
-            asn1_encode(univ.OctetString("1"*466)), pk)
+            encode(univ.OctetString("1"*466)), pk)
         self.crypto_obj._Crypto__decrypt_with_rsa(
             test_content, sk)
