@@ -130,7 +130,7 @@ class MessagePacket(univ.Sequence):
     """
     componentType = namedtype.NamedTypes(
         namedtype.NamedType('protocolVersion', univ.Integer()),
-        namedtype.NamedType('headerBlock', univ.OctetString()),
-        namedtype.NamedType('hmacBlock', univ.OctetString()),
-        namedtype.NamedType('contentBlock', univ.OctetString())
+        namedtype.NamedType('headerBlock', MPHeaderContainer()),
+        namedtype.NamedType('hmacBlock', MPHMACContainer()),
+        namedtype.NamedType('contentBlock', MPContentContainer())
     )

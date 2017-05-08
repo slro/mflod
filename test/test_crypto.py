@@ -38,6 +38,7 @@ class TestCrypto(unittest.TestCase):
     def setUp(self):
         self.crypto_obj = Crypto()
 
+    @unittest.skip("skip")
     def test_aes_encryption_consistency(self):
 
         # test encryption-decryption for each test message
@@ -57,6 +58,7 @@ class TestCrypto(unittest.TestCase):
             # check whether they are equal
             self.assertEqual(test_der, pt)
 
+    @unittest.skip("skip")
     def test_content_block_assembly_consistency(self):
 
         # test assembly-disassembly of a content block for each test message
@@ -74,6 +76,7 @@ class TestCrypto(unittest.TestCase):
                         key)[1],
                     msg)
 
+    @unittest.skip("skip")
     def test_signing_consistency(self):
 
         # test signature creation and verification for each test message
@@ -102,20 +105,24 @@ class TestCrypto(unittest.TestCase):
             # check whether verification was successful
             self.assertTrue(res)
 
+    @unittest.skip("skip")
     def test_generate_hmac(self):
         self.crypto_obj._Crypto__generate_hmac(asn1_encode(
                             univ.OctetString("test_me")),
                             urandom(20)
                         )
 
+    @unittest.skip("skip")
     def test_assemble_hmac_block(self):
         self.crypto_obj._Crypto__assemble_hmac_block(
             self.crypto_obj._Crypto__generate_hmac(
                 asn1_encode(univ.OctetString("test_me")),
                 urandom(20)), urandom(20))
 
+    @unittest.skip("skip")
     def test_verify_hmac(self):
         key = urandom(20)
+        key2 = urandom(20)
         msg = urandom(10000)
         hmac_digest = self.crypto_obj._Crypto__generate_hmac(
                 asn1_encode(univ.OctetString(msg)), key)
@@ -129,17 +136,19 @@ class TestCrypto(unittest.TestCase):
     def test_rsa_encrypt_and_decrypt(self):
         sk = rsa.generate_private_key(
             public_exponent=65537,
-            key_size=4096,
+            key_size=1024,
             backend=default_backend()
         )
         pk = sk.public_key()
 
         sk_2 = rsa.generate_private_key(
             public_exponent=65537,
-            key_size=2048,
+            key_size=4096,
             backend=default_backend()
         )
-        test_content = self.crypto_obj._Crypto__encrypt_with_rsa(
-            asn1_encode(univ.OctetString("1"*466)), pk)
-        self.crypto_obj._Crypto__decrypt_with_rsa(
-            test_content, sk)
+        #test_content = self.crypto_obj._Crypto__encrypt_with_rsa(
+        #    asn1_encode(univ.OctetString("1"*200)), pk)
+        #self.crypto_obj._Crypto__decrypt_with_rsa(
+        #    test_content, sk)
+        self.crypto_obj.assemble_message_packet('test'*100000, pk)
+        #self.crypto_obj.assemble_message_packet('test'*100, pk, [sk_2, "45234589"])

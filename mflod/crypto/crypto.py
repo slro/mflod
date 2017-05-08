@@ -49,10 +49,10 @@ class Crypto(object):
         self.logger = logging.getLogger(__name__)
         self.logger.debug(logstr.CRYPTO_CLASS_INIT)
 
-    def assemble_message_packet(msg_content, recipient_pk, sign=None):
+    def assemble_message_packet(self, msg_content, recipient_pk, sign=None):
         """ Assemble FLOD message packet
 
-        @developer: ???
+        @developer: vsmysle
 
         Assembly involves a creation of DER-encoded ASN.1 structure that
         corresponds to a specification of FLOD message packet format. To
@@ -69,10 +69,12 @@ class Crypto(object):
                                     that is a public key of a recipient.
                                     Used to encrypt a header block of the
                                     message packet.
-        :param sign=None:      instance of cryptography.hazmat.
+        :param sign=None:           list
+                                    [instance of cryptography.hazmat.
                                     primitives.asymmetric.rsa.RSAPrivateKey
                                     that is used to create a signature in the
-                                    header block of FLOD message packet
+                                    header block of FLOD message packet,
+                                    string PGPKey_ID]
 
         :return: string DER-encoded ASN.1 structure that is FLOD message packet
                  ready to be sent to a recipient
@@ -80,12 +82,115 @@ class Crypto(object):
         :raise: ???
 
         """
-        # NOTE:
-        # A
-        # A 2048-bit key can encrypt up to (2048/8) – 42 - 3 = 256 – 42 - 3 = 211 bytes.
-        # A 1024-bit key can encrypt up to (1024/8) - 42 - 2 = 128 - 42 - 2 = 84 bytes.
+        # enable debug logging
+        self.logger.debug("assembly flod message packet")
 
-        pass
+        # generate key_lst = [iv, aes_key, hmac_key]
+        key_lst = self.__get_random_bytes([16, 16, 20])
+
+        # generate content block (AES encrypted )
+        content_block = self.__assemble_content_block(msg_content,
+                                                      key_lst[1], key_lst[0])
+
+        # generate HMAC block
+        hmac_block = self.__assemble_hmac_block(asn1_encode(content_block),
+                                                key_lst[2])
+
+        # calculate the maximum length of RSA encryption
+        rsa_max_len = self.__get_rsa_max_bytestring_size(recipient_pk.key_size)
+
+        # creating instance of AlgorithmIdentifier class for RSA signing
+        algo_identifier = asn1_dec.AlgorithmIdentifier()
+
+        # set default parameters to univ.Null()
+        algo_identifier['parameters'] = univ.Null()
+
+        if sign:
+            # logger for existence of sign list
+            self.logger.info("sign list is present")
+
+            # generate signature using sender secret key and PGPKeyID
+            signature = self.__sign_content(key_lst[1]+key_lst[2], sign[0])
+
+            # assign PGPKeyID to a variable
+            pgp_key_id = sign[1]
+
+            # setting oid for the rsassa-pss
+            algo_identifier['algorithm'] = const.RSASSA_PSS_OID
+
+        else:
+            # logger for existence of sign list
+            self.logger.info("sign list is not present")
+
+            # if there is no sign list - generate random signature
+            signature = urandom(rsa_max_len)
+
+            # generating random PGPKeyID
+            pgp_key_id = urandom(8)
+
+            # setting signature oid to zeros
+            algo_identifier['algorithm'] = '0.0.0.0.0.0.0'
+
+        # creating instance of MPHeader class
+        mp_header = asn1_dec.MPHeader()
+
+        # setting indentificationString to constant - FLOD
+        mp_header['identificationString'] = const.IS
+
+        # setting AlgorithmIdentifier as a parameter of MPHeader
+        mp_header['signatureAlgorithm'] = algo_identifier
+
+        # setting PGPKeyID that was defined above
+        mp_header['PGPKeyID'] = pgp_key_id
+
+        # setting signature that was calculated previously
+        mp_header['signature'] = signature
+
+        # setting HMACKey from the generated keys list
+        mp_header['HMACKey'] = key_lst[2]
+
+        # setting AESKey from the generated keys list
+        mp_header['AESKey'] = key_lst[1]
+
+        # encoding header into ASN.1 DER-encoded structure
+        encoded_mp_header = asn1_encode(mp_header)
+
+        # encrypting parts of encoded header with RSA
+        # we encrypt several part due to restriction of the RSA max encryption
+        # length
+        enc_header = self.__encrypt_with_rsa(encoded_mp_header[0:rsa_max_len],
+                                             recipient_pk) + \
+                     self.__encrypt_with_rsa(encoded_mp_header[rsa_max_len:],
+                                             recipient_pk)
+
+        # createing instance of AlgorithmIdentifier for RSA encryption OID
+        rsa_algo_identifier = asn1_dec.AlgorithmIdentifier()
+
+        # setting the OID for id-rsaes-oaep
+        rsa_algo_identifier['algorithm'] = const.ID_RSAES_OAEP
+
+        # setting default parameters to univ.Null()
+        rsa_algo_identifier['parameters'] = univ.Null()
+
+        # creating the instance of MPHeaderContainer class
+        mp_header_container = asn1_dec.MPHeaderContainer()
+
+        # setting AlgorithmIdentifier
+        mp_header_container['encryptionAlgorithm'] = rsa_algo_identifier
+
+        mp_header_container['encryptedHeader'] = enc_header
+
+        message_packet = asn1_dec.MessagePacket()
+        message_packet['protocolVersion'] = const.PROTOCOL_VERSION
+        message_packet['headerBlock'] = mp_header_container
+        message_packet['hmacBlock'] = hmac_block
+        message_packet['contentBlock'] = content_block
+
+        with open('message.der', 'wb') as f:
+            f.write(asn1_encode(message_packet))
+            f.close()
+        return asn1_encode(message_packet)
+
 
     def disassemble_message_packet(msg_packet, get_sks_func, get_pk_byid_func):
         """ Attempt to disassemble FLOD message packet that was received
@@ -182,15 +287,14 @@ class Crypto(object):
         mp_content_container['encryptedContent'] = mp_content_ct
 
         # encode MPContentContainer and return it
-        return asn1_encode(mp_content_container)
+        return mp_content_container
 
     def __disassemble_content_block(self, content, key):
         """ Decrypt and decode content from a content block
 
         @developer: ddnomad
 
-        :param content: DER-encoded ASN.1 structure that encapsulates
-                        encrypted content
+        :param content: instance of MPContentContainer class
         :param key:     string AES key to be used for decryption
 
         :return: list of the following values:
@@ -204,12 +308,11 @@ class Crypto(object):
 
         # decode MPContentContainer from DER
         # TODO: try-except in a case when decoding failed
-        mp_content_container_asn1 = asn1_decode(content)
-
+        mp_content_container_asn1 = content
         # recover values that are necessary for decryption
         # TODO: verify encryptionAlgorithm OID
-        iv = bytes(mp_content_container_asn1[0][0])
-        enc_content = bytes(mp_content_container_asn1[0][2])
+        iv = bytes(mp_content_container_asn1[0])
+        enc_content = bytes(mp_content_container_asn1[2])
 
         # decrypt DER-encoded MPContent
         mp_content_pt_der = self.__decrypt_with_aes(enc_content, key, iv)
@@ -239,6 +342,7 @@ class Crypto(object):
         # TODO: add exceptions
 
         self.logger.debug("producing HMAC block with ASN.1 structure")
+
         # calculating hmac digest of content
         digest = self.__generate_hmac(content, key)
 
@@ -252,22 +356,21 @@ class Crypto(object):
         ai['algorithm'] = oid
         ai['parameters'] = univ.Null()
 
-        # creating instance of AlgorithmIdentifier class
+        # creating instance of MPHMACContainer class
         hmac_block = asn1_dec.MPHMACContainer()
 
         # setting corresponding parameters
         hmac_block['digestAlgorithm'] = ai
         hmac_block['digest'] = digest
 
-        return asn1_encode(hmac_block)
+        return hmac_block
 
     def __verify_hmac(self, hmac_blk, key, content_blk):
         """ Verify content HMAC
 
         @developer: vsmysle
 
-        :param hmac_blk:        string DER-encoded ASN.1 structure of HMAC
-                                block (MPHMACContainer)
+        :param hmac_blk:        instance of MPHMACContainer class
         :param key:             string HMAC secret key
         :param content_blk:     string DER-encoded ASN.1 structure of content
                                 block
@@ -278,14 +381,17 @@ class Crypto(object):
         # TODO: add exceptions
 
         self.logger.debug("verifying  HMAC")
-        2
+
         # calculation of the HMAC digest for received content block
         hmac_of_content_blk = self.__generate_hmac(content_blk, key)
 
         # get digest from the HMAC block
-        decoded_hmac_block = asn1_decode(hmac_blk)[0][1]
+        digest = hmac_blk[1]
 
-        if decoded_hmac_block == hmac_of_content_blk:
+        # compering calculated digest from content block and
+        # digest from instance of MPHMACContainer class
+
+        if digest == hmac_of_content_blk:
             self.logger.info("successful HMAC verification")
             return True
         self.logger.warning("HMAC verification failed!")
@@ -413,7 +519,7 @@ class Crypto(object):
     def __decrypt_with_rsa(self, content, user_sk):
         """ Decrypt RSAES-OAEP encrypted content (single block)
 
-        @developer: ???
+        @developer: vsmysle
 
         This method decrypts a single RSA ciphertext block only
 
@@ -561,4 +667,5 @@ class Crypto(object):
                  RSA key with specified key size
 
         """
-        return (key_size/8) - 42 - int(key_size >> 8).bit_length() - 1
+        return key_size // 8 - 42
+
