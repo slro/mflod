@@ -1,5 +1,10 @@
 import logging
-
+import hmac
+from hashlib import sha1
+from pyasn1.type import univ, namedtype
+from pyasn1.codec.der.encoder import encode
+from os import urandom
+from mflod.crypto.asn1_structures import *
 
 class Crypto(object):
     """ Class that handles assembly of FLOD protocol message packet
@@ -148,10 +153,10 @@ class Crypto(object):
 
         pass
 
-    def __assemble_hmac_block(content, key):
+    def __assemble_hmac_block(self, content, key):
         """ Produce HMAC block ASN.1 structure (MPHMACContainer)
 
-        @developer: ???
+        @developer: vsmysle
 
         :param content: string DER-encoded content generate HMAC of and
                         encapsulate into HMAC FLOD block
@@ -161,8 +166,30 @@ class Crypto(object):
                  block
 
         """
+        # TODO: add exceptions
 
-        pass
+        self.logger.debug("Producing HMAC block with ASN.1 structure...")
+        # calculating hmac digest of content
+        digest = self.__generate_hmac(content, key)
+
+        # oid for SHA1 hash function
+        oid = '1.3.14.3.2.26'
+
+        # creating instance of AlgorithmIdentifier class
+        ai = AlgorithmIdentifier()
+
+        # setting corresponding parameters
+        ai['algorithm'] = oid
+        ai['parameters'] = univ.Null()
+
+        # creating instance of AlgorithmIdentifier class
+        hmac_block = MPHMACContainer()
+
+        # setting corresponding parameters
+        hmac_block['digestAlgorithm'] = ai
+        hmac_block['digest'] = digest
+
+        return encode(hmac_block)
 
     def __verify_hmac(hmac_blk, key, content_blk):
         """ Verify content HMAC
@@ -181,10 +208,10 @@ class Crypto(object):
 
         pass
 
-    def __generate_hmac(content, key):
+    def __generate_hmac(self, content, key):
         """ Generate HMAC for in input content and key
 
-        @developer: ???
+        @developer: vsmysle
 
         :param content: string DER-encoded content to produce digest of
         :param key:     string key to use for HMAC
@@ -192,8 +219,16 @@ class Crypto(object):
         :return: string HMAC of the input content
 
         """
+        # TODO: add exceptions
 
-        pass
+        self.logger.debug("Generation HMAC for input content...")
+
+        # generating instance of HMAC with sha1 hash function
+        hmac_digest = hmac.new(key, None, sha1)
+
+        # feed the content to generated HMAC instance
+        hmac_digest.update(content)
+        return hmac_digest.digest()
 
     def __encrypt_with_aes(content, key):
         """ Encrypt content with AES-128-CBC (with PCKS#7 padding)
@@ -293,10 +328,10 @@ class Crypto(object):
 
         pass
 
-    def __get_asn1_algorithm_identifier_der(oid_str):
+    def __get_asn1_algorithm_identifier_der(self, oid_str):
         """ Generate ASN.1 structure for algorithm identifier
 
-        @developer: ???
+        @developer: vsmysle
 
         :param oid_str: string OID to encapsulate
 
@@ -304,12 +339,20 @@ class Crypto(object):
 
         """
 
-        pass
+        # TODO: add exceptions
 
-    def __get_random_bytes(spec_lst):
+        # create the instance of AlgorithmIdentifier
+        self.logger.debug("Receiving ASN.1 AlgorithmIdentifier structure with "
+                      "OID=%s") % oid_str
+        ai = AlgorithmIdentifier()
+        ai['algorithm'] = oid_str
+        ai['parameters'] = univ.Null()
+        return encode(ai)
+
+    def __get_random_bytes(self, spec_lst):
         """ Generate random bytes
 
-        @developer: ???
+        @developer: vsmysle
 
         :param spec_lst: list of integers that is lengths of bytestings to
                          return
@@ -319,4 +362,7 @@ class Crypto(object):
 
         """
 
-        pass
+        # TODO: add exception for negative integers
+
+        self.logger.debug("Generating random bytes...")
+        return [urandom(i) for i in spec_lst]
