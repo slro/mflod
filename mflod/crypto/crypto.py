@@ -180,7 +180,7 @@ class Crypto(object):
 
             # calculate identification string offset
             offset = self.__calculate_der_id_string_offset(
-                    mp_header_pt_init_block)
+                    list(mp_header_pt_init_block))
 
             # check whether id string matches
             if not mp_header_pt_init_block[offset, offset + 4] == \
@@ -192,6 +192,8 @@ class Crypto(object):
 
             # found a matching key - message can be decrypted
             else:
+
+                self.logger.info(logstr.MESSAGE_FOR_USER)
 
                 # init exit code (optimistic)
                 exit_code = 0
@@ -221,6 +223,8 @@ class Crypto(object):
                 # there is a signature
                 if sign_oid != const.NO_SIGN_OID:
 
+                    self.logger.info(logstr.MESSAGE_IS_SIGNED)
+
                     # get signer public key
                     signer_cands = get_pk_byid_func(pgp_key_id)
 
@@ -235,6 +239,7 @@ class Crypto(object):
 
                     # nothing found for this PGP ID
                     elif signer_cands is None:
+                        self.logger.warn(logstr.SIGN_CANNOT_VERIF)
                         exit_code = 3
 
                     # the PGP ID is zeros so signer used non-PGP key
@@ -244,6 +249,8 @@ class Crypto(object):
 
                         # just in case
                         assert(isinstance(signer_cands, tuple))
+
+                        self.logger.info(logstr.NON_PGP_KEY_SIGN)
 
                         # brute over all user non-PGP keys in attempt to verify
                         for cand_key in signer_cands:
@@ -267,6 +274,8 @@ class Crypto(object):
 
                 # there is no signature in MPHeader
                 else:
+
+                    self.logger.info(logstr.NOT_SIGNED_MESSAGE)
                     exit_code = 2
 
                     # retrieve MPHMACContainer and MPContentContainer
@@ -285,18 +294,36 @@ class Crypto(object):
                     timestamp, message = self.__disassemble_content_block(
                             mp_content_container, aes_key)
 
+                    self.logger.info(logstr.MSG_CONTENT_WAS_RECOVERED)
+
                     # return correct result
                     if signer_info:
                         return timestamp, message, exit_code, signer_info
                     return timestamp, message, exit_code
 
         # TODO: create more verbose exception
+        self.logger.info(logstr.MESSAGE_NOT_FOR_USER)
         raise exc.NoMatchingRSAKeyForMessage("")
 
-
     def __calculate_der_id_string_offset(der):
-        # NOTE: don't forget to add 2
-        pass
+        """ Determine an offset to identification string in header fragment
+
+        :param der: DER-encoded fragment of MPHeader ASN.1 structure
+
+        :return: integer offset to an indentification string
+
+        """
+
+        # bitmasks declaration
+        MSB_MASK = 0x80
+        LEN_SPEC_MASK = 0x7F
+
+        der.pop(0)
+        len_spec = ord(der.pop(0))
+        if len_spec & MSB_MASK == MSB_MASK:
+            len_of_len = len_spec & LEN_SPEC_MASK
+            return len_of_len + 3
+        return 3
 
     def __assemble_content_block(self, content, key, iv):
         """ Create an ASN.1 DER-encoded structure of a content block
