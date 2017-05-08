@@ -14,6 +14,7 @@ from pyasn1.codec.der.decoder import decode as asn1_decode
 
 # cryptography connected imports
 import hmac
+import hashlib
 from os import urandom
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.hashes import SHA1
@@ -21,6 +22,7 @@ from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from cryptography.exceptions import InvalidSignature, InvalidKey
+
 
 class Crypto(object):
     """ Class that handles assembly of FLOD protocol message packet
@@ -79,8 +81,9 @@ class Crypto(object):
 
         """
         # NOTE:
-        # A 2048-bit key can encrypt up to (2048/8) – 42 = 256 – 42 = 214 bytes.
-        # A 1024-bit key can encrypt up to (1024/8) - 42 = 128 - 42 = 85 bytes.
+        # A
+        # A 2048-bit key can encrypt up to (2048/8) – 42 - 3 = 256 – 42 - 3 = 211 bytes.
+        # A 1024-bit key can encrypt up to (1024/8) - 42 - 2 = 128 - 42 - 2 = 84 bytes.
 
         pass
 
@@ -280,13 +283,12 @@ class Crypto(object):
         hmac_of_content_blk = self.__generate_hmac(content_blk, key)
 
         # get digest from the HMAC block
-        # TODO: check index !
         decoded_hmac_block = asn1_decode(hmac_blk)[0][1]
 
         if decoded_hmac_block == hmac_of_content_blk:
             self.logger.info("Successful HMAC verification!")
             return True
-        self.logger.warn("HMAC verification failed!")
+        self.logger.warning("HMAC verification failed!")
         return False
 
     def __generate_hmac(self, content, key):
@@ -305,7 +307,7 @@ class Crypto(object):
         self.logger.debug("Generation HMAC for input content...")
 
         # generating instance of HMAC with sha1 hash function
-        hmac_digest = hmac.new(key, None, SHA1())
+        hmac_digest = hmac.new(key, None, hashlib.sha1)
 
         # feed the content to generated HMAC instance
         hmac_digest.update(content)
@@ -405,6 +407,7 @@ class Crypto(object):
                 label=None
             )
         )
+        self.logger.info("Encrypted!")
         return ciphertext
 
     def __decrypt_with_rsa(self, content, user_sk):
@@ -433,7 +436,7 @@ class Crypto(object):
                 )
             )
         except InvalidKey:
-            self.logger.warn("Invalid key!")
+            self.logger.warning("Invalid key!")
             return
         return plaintext
 
@@ -464,7 +467,7 @@ class Crypto(object):
                 SHA1()
             )
         except InvalidKey:
-            self.logger.warn("Invalid key!")
+            self.logger.warning("Invalid key!")
             return
         signer.update(content)
         signature = signer.finalize()
@@ -496,7 +499,7 @@ class Crypto(object):
                 SHA1()
             )
         except InvalidSignature:
-            self.logger.warn("Signature verification failed!")
+            self.logger.warning("Signature verification failed!")
             return False
         self.logger.info("Successful signature verification!")
         return True
@@ -541,3 +544,17 @@ class Crypto(object):
 
         self.logger.debug("Generating random bytes...")
         return [urandom(i) for i in spec_lst]
+
+    def __get_rsa_max_bytestring_size(self, key_size):
+        """ Helper function that says how many bytes you can encrypt
+            with RSA
+
+        @developer: vsmysle
+
+        :param key_size: size of the RSA key
+
+        :return: int specifying how many bytes you can encrypt using
+                 RSA key with specified key size
+
+        """
+        return (key_size/8) - 42 - int(key_size >> 8).bit_length() - 1
