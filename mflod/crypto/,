@@ -1,6 +1,4 @@
 import logging
-from log_strings import LogStrings as logstr
-from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
@@ -27,7 +25,7 @@ class Crypto(object):
         """ Initialization method """
 
         self.logger = logging.getLogger(__name__)
-        self.logger.debug(logstr.CRYPTO_CLASS_INIT)
+        self.logger.debug("module instance was created")
 
     def assemble_message_packet(msg_content, recipient_pk, sign=None):
         """ Assemble FLOD message packet
@@ -138,18 +136,13 @@ class Crypto(object):
         """
 
         # logger entry
-        self.logger.debug(logstr.ASSEMBLE_CONTENT_BLOCK_CALL)
-
-        # create an ASN.1 structure of MPContent and DER-encode it
+        self.logger.debug("starting a content block assembly")
 
         # initialize necessary crypto backend instances
         backend = default_backend()
         aes = Cipher(algorithms.AES(key), modes.CBC(iv),
                 backend=backend).encryptor()
 
-        
-
-    
 
 
     def __disassemble_content_block(content, key):
