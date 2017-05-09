@@ -62,5 +62,7 @@ class GnuPGWrapper(object):
         try:
             self.gpg.delete_keys(fingerprint, True)
             self.gpg.delete_keys(fingerprint, False)
+
+            self.logger.info('RSA key pair is being deleted. Fingerprint: ' + fingerprint)
         except Exception as ERROR:
             self.logger.error(ERROR)
