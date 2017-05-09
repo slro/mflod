@@ -1,4 +1,5 @@
 from random import choice
+import _pickle as pkl
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
@@ -30,3 +31,24 @@ class DummyKeyManager(object):
 
     def get_pk_by_pgp_id(self):
         raise NotImplementedError("NO WAY")
+
+    def dump_key_pickle(self, key_ind, path):
+
+        if not 0 < key_ind < len(self.keys):
+            raise IndexError("Key index out of range")
+
+        try:
+            with open(path, 'wb') as f:
+                pkl.dump(self.keys[key_ind], f)
+        except Exception as e:
+            print("failed to dump key: %s" % e)
+
+    def load_key_from_pickle(self, path):
+
+        try:
+            with open(path, 'rb') as f:
+                self.keys.append(pkl.load(f))
+        except Exception as e:
+            print("failed to load key: %s" % e)
+
+        return len(self.keys) - 1

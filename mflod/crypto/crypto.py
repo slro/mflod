@@ -216,17 +216,24 @@ class Crypto(object):
 
         :param msg_packet:          string DER-encoded ASN.1 structure of FLOD
                                     message packet to decrypt
-        # :param get_sks_func:        generator that yields all available secret
-        #                             keys of a user. The user keys have to be
-        #                             instances of cryptography.hazmat.primitives
-        #                             .assymetric.rsa.RSAPublicKey class.
-        # :param get_pk_byid_func:    function that returns an instance of
-        #                             cryptography.hazmat.primitives.assymetric.rsa
-        #                             .RSAPrivateKey that corresponds to a
-        #                             PGPKeyID that is passed to it. If there is
-        #                             no such key available the function should
-        #                             return a list of instances of the same
-        #                             class that are non-PGP keys without IDs.
+        :param key_manager:         instance of mflod.crypto.key_manager.
+                                    KeyManager that should implement two
+                                    mandatory methods:
+                                        - yield_keys() which return all user
+                                          private keys (both PGP and plain
+                                          ones) one by one (generator). The
+                                          method has to return instances of
+                                          cryptography.hazmat.primitives.
+                                          asymmetric.rsa.RSAPrivateKey
+                                        - get_pk_by_pgp_id(pgp_id) which
+                                          attempts to find a matching to an
+                                          string input ID PGP key. If the key
+                                          was found - return an instance of
+                                          cryptography.hazmat.primitives.
+                                          asymmetric.rsa.RSAPublicKey. If there
+                                          is not such key - return None. If the
+                                          ID passed is all 0s - return a list
+                                          of all user plain RSA public keys.
 
         :return: one of the following lists (see supplementary exit codes
                  paragraph for details):
