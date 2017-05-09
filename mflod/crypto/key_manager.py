@@ -20,12 +20,10 @@ class KeyManager(object):
         Initialize KeyManager class
 
         Initialization processes:
-            - Defines logging basic configuration
+            - Defines logging instance
         """
 
-        logging.basicConfig(filename='./logs/key_manager.log', level=logging.DEBUG)
-
-        self.logger = logging.getLogger('KeyManager')
+        self.logger = logging
         self.logger.debug('KeyManager instance is being created.')
 
     def gen_plain_rsa_key(self, key_size=2048):
