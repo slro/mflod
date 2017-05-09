@@ -1,6 +1,5 @@
 import logging
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 
@@ -32,16 +31,13 @@ class KeyManager(object):
     def gen_plain_rsa_key(self, key_size=2048):
         """
         Generates RSA key pair based on provided key_size
-        and returns dict with public_key and private_key attributes.
+        and returns cryptography lib object.
 
         Response example:
-            {
-                "public_key": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----\n",
-                "private_key" "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----\n"
-            }
+            cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object
 
         :param key_size: int
-        :return: dict
+        :return: object
         """
         try:
             # Generates RSA key pair
@@ -51,26 +47,8 @@ class KeyManager(object):
                 backend=default_backend()
             )
 
-            # Serializes private key
-            private_key = key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.NoEncryption()
-            ).decode('utf-8')
+            self.logger.info('Plain RSA (' + str(key_size) + ' bits) key pair is being generated: ' + str(key))
 
-            # Serializes public key
-            public_key = key.public_key().public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
-            ).decode('utf-8')
-
-            response = {
-                "public_key": public_key,
-                "private_key": private_key,
-            }
-
-            self.logger.info('Plain RSA (' + str(key_size) + ' bits) key pair is being generated: ' + str(response))
-
-            return response
+            return key
         except Exception as ERROR:
             self.logger.error(ERROR)
