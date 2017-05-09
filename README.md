@@ -1,9 +1,7 @@
-mflod
+mflod (Work in progress)
 =====
 
 **MFlod** is an implementation of **Flod** overlay communication protocol. It allows everybody to communicate securely hiding not only the content of messages being transmitted (*information*) but also identities of sender and recipient, their location, time at which the message was sent and received etc (all kinds of *meta-information*).
-
-This is one of the first implementations that are currently under the development (as well as a protocol itself). The **pre-alpha** version should be available till the *end of May, 2017*.
 
 Documentation Index
 -------------------
