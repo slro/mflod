@@ -7,24 +7,21 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 class KeyManager(object):
     """
-    class is responsible for managing and retrieving GPG keys from GPG keychain
+    Class manages operations on user GPG keys
 
-        Specifically, goal is to provide GPG key pairs:
-            - GPG key ID
-            - GPG public key
-            - GPG private key
+    Specifically, goal is to implement and provide gnupg_wrapper.py (GnuPGWrapper) functionality,
+    generate plain RSA key pair and support helper methods. Also convert and provide PGP keys to
+    a cryptography lib key instances.
 
-        Class uses GPG wrapper behind the scene (python3-gnupg package).
-
-        Developers:
-            - Tornike Nanobashvili
+    Developers:
+        - Tornike Nanobashvili
     """
 
     def __init__(self):
         """
         Initialize KeyManager class
 
-        Processes:
+        Initialization processes:
             - Defines GnuPG instance
             - Defines logging basic configuration
         """
