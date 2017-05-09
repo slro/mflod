@@ -447,8 +447,8 @@ class Crypto(object):
         MPContentContainer
 
         :param content: string content to encapsulate
-        :param key:     string AES key to use for encryption
-        :param iv:      string CBC mode initialization vector
+        :param key:     bytes AES key to use for encryption
+        :param iv:      bytes CBC mode initialization vector
 
         :return: string DER-encoding of MPContentContainer ASN.1 structure
 
@@ -521,7 +521,7 @@ class Crypto(object):
 
         :param content: string DER-encoded content generate HMAC of and
                         encapsulate into HMAC FLOD block
-        :param key:     string key to use for HMAC generation
+        :param key:     bytes key to use for HMAC generation
 
         :return: DER-encoded ASN.1 structure that encapsulates HMAC
                  block
@@ -556,11 +556,12 @@ class Crypto(object):
     def __verify_hmac(self, hmac_blk, key, content_blk):
         """ Verify content HMAC
 
+
         @developer: vsmysle
 
         :param hmac_blk:        instance of MPHMACContainer class
-        :param key:             string HMAC secret key
-        :param content_blk:     string DER-encoded ASN.1 structure of content
+        :param key:             bytes HMAC secret key
+        :param content_blk:     bytes DER-encoded ASN.1 structure of content
                                 block
 
         :return: bool verification result
@@ -591,7 +592,7 @@ class Crypto(object):
         @developer: vsmysle
 
         :param content: string DER-encoded content to produce digest of
-        :param key:     string key to use for HMAC
+        :param key:     bytes key to use for HMAC
 
         :return: string HMAC of the input content
 
@@ -613,8 +614,8 @@ class Crypto(object):
         @developer: ddnomad
 
         :param content: bytes DER-encoded MPContent ASN.1 structure to encrypt
-        :param key:     string key to use for encryption
-        :param iv:      string CBC mode initialization vector
+        :param key:     bytes key to use for encryption
+        :param iv:      bytes CBC mode initialization vector
 
         :return: string encryption of an input content
 
@@ -644,8 +645,8 @@ class Crypto(object):
         @developer: ddnomad
 
         :param content: bytes ciphertext of MPContent ASN.1 structure
-        :param key:     string AES secret key
-        :param iv:      string CBC mode initialization vector
+        :param key:     bytes AES secret key
+        :param iv:      bytes CBC mode initialization vector
 
         :return: string decrypted DER-encoded MPContent ASN.1 structure
 
@@ -683,7 +684,7 @@ class Crypto(object):
         TODO: what is a maximum size of a content that can be padded and
         encrypted given a particular size of RSA key?
 
-        :param content:         string content to encrypt (probably a part of
+        :param content:         bytes content to encrypt (probably a part of
                                 ASN.1 DER-encoded MPHeader block)
         :param recipient_pk:    instance of cryptography.hazmat.primitives.rsa
                                 .RSAPublicKey to use for a content encryption
@@ -691,8 +692,9 @@ class Crypto(object):
         :return: string encryption of an input content
 
         """
+
         # TODO: add exceptions
-        self.logger.debug("RSA encryption ...")
+        self.logger.debug("rsa encryption")
 
         ciphertext = recipient_pk.encrypt(
             content, asym_padding.OAEP(
@@ -701,7 +703,7 @@ class Crypto(object):
                 label=None
             )
         )
-        self.logger.info("Encrypted!")
+        self.logger.info("encrypted")
         return ciphertext
 
     def __decrypt_with_rsa(self, content, user_sk):
@@ -711,7 +713,7 @@ class Crypto(object):
 
         This method decrypts a single RSA ciphertext block only
 
-        :param content: string content to decrypt
+        :param content: bytes content to decrypt
         :param user_sk: instance of cryptography.hazmat.primitives.rsa
                         .RSAPrivateKey to use for a decryption
 
@@ -720,7 +722,7 @@ class Crypto(object):
         """
         # TODO: add exceptions
 
-        self.logger.debug("RSA decryption ...")
+        self.logger.debug("rsa decryption")
         try:
             plaintext = user_sk.decrypt(
                 content, asym_padding.OAEP(
@@ -739,11 +741,11 @@ class Crypto(object):
 
         @developer: vsmysle
 
-        :param content: string content to sign
+        :param content: bytes content to sign
         :param user_sk: instance of cryptography.hazmat.primitives.rsa.
                         RSAPrivateKey
 
-        :return: string signature of the input content
+        :return: bytes of signature of the input content
 
         """
 
@@ -773,7 +775,7 @@ class Crypto(object):
 
         @developer: vsmysle
 
-        :param signature: string signature to verify
+        :param signature: signature bytes to verify
         :param signer_pk: instance of cryptography.hazmat.primitives.
                           rsa.RSAPublicKey that is a public key of a signer
         :param content:   content to verify a signature of
@@ -833,7 +835,7 @@ class Crypto(object):
         :param spec_lst: list of integers that is lengths of bytestings to
                          return
 
-        :return: list of random bytestrings with lengths corresponding to the
+        :return: list of random bytes with lengths corresponding to the
                  ones from a spec list
 
         """
@@ -851,7 +853,7 @@ class Crypto(object):
 
         :param key_size: size of the RSA key
 
-        :return: int specifying how many bytes you can encrypt using
+        :return: integer specifying how many bytes you can encrypt using
                  RSA key with specified key size
 
         """
