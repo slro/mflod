@@ -139,7 +139,7 @@ class TestCrypto(unittest.TestCase):
         key_manager = DummyKeyManager()
         sk = choice(key_manager.keys)
         pk = sk.public_key()
-        encrypted_packet = self.crypto_obj.assemble_message_packet('testtest'*100, pk)
+        encrypted_packet = self.crypto_obj.assemble_message_packet('HelloHello', pk)
         msg = self.crypto_obj.disassemble_message_packet(encrypted_packet, key_manager)
         print(msg)
 

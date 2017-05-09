@@ -160,12 +160,13 @@ class Crypto(object):
         # encrypting parts of encoded header with RSA
         # we encrypt several part due to restriction of the RSA max encryption
         # length
-        enc_header = self.__encrypt_with_rsa(encoded_mp_header[:rsa_max_len],
-                                             recipient_pk) + \
-                     self.__encrypt_with_rsa(encoded_mp_header[rsa_max_len:],
-                                             recipient_pk)
 
-        # createing instance of AlgorithmIdentifier for RSA encryption OID
+        enc_header = bytes()
+        for rsa_block in [encoded_mp_header[i:i+rsa_max_len] for i in
+                          range(0, len(encoded_mp_header), rsa_max_len)]:
+            enc_header += self.__encrypt_with_rsa(rsa_block, recipient_pk)
+
+        # creating instance of AlgorithmIdentifier for RSA encryption OID
         rsa_algo_identifier = asn1_dec.AlgorithmIdentifier()
 
         # setting the OID for id-rsaes-oaep
@@ -180,13 +181,23 @@ class Crypto(object):
         # setting AlgorithmIdentifier
         mp_header_container['encryptionAlgorithm'] = rsa_algo_identifier
 
+        # set encrypted header to the OCTET STRING
         mp_header_container['encryptedHeader'] = enc_header
 
+        # creating the instance of MessagePacket class
         message_packet = asn1_dec.MessagePacket()
+
+        # setting the version of our protocol that is taken from constants
         message_packet['protocolVersion'] = const.PROTOCOL_VERSION
+
+        # setting the instance of MPHeaderContainer to the header block
         message_packet['headerBlock'] = mp_header_container
         message_packet['hmacBlock'] = hmac_block
         message_packet['contentBlock'] = content_block
+
+        with open('message.der', 'wb') as f:
+            f.write(asn1_encode(message_packet))
+            f.close()
 
         return asn1_encode(message_packet)
 
@@ -247,7 +258,6 @@ class Crypto(object):
         :raise mflod.crypto.exceptions.NoMatchingRSAKeyForMessage,
                mflod.crypto.exceptions.SignatureVerificationFailed,
                mflod.crypto.exceptions.HMACVerificationFailed
-
         """
 
         # log entry
