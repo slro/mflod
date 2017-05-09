@@ -1,6 +1,8 @@
 import unittest
 import logging
+from random import choice
 from mflod.crypto.crypto import Crypto
+from dummy_key_manager import DummyKeyManager
 from pyasn1.type import univ
 from os import urandom
 from pyasn1.codec.der.encoder import encode
@@ -36,6 +38,7 @@ class TestCrypto(unittest.TestCase):
 
     def setUp(self):
         self.crypto_obj = Crypto()
+        self.key_manager = DummyKeyManager()
 
     @unittest.skip("skip")
     def test_aes_encryption_consistency(self):
@@ -133,21 +136,10 @@ class TestCrypto(unittest.TestCase):
             _Crypto__verify_hmac(hmac_blk, key, hmac_digest)
 
     def test_rsa_encrypt_and_decrypt(self):
-        sk = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=1024,
-            backend=default_backend()
-        )
+        key_manager = DummyKeyManager()
+        sk = choice(key_manager.keys)
         pk = sk.public_key()
+        encrypted_packet = self.crypto_obj.assemble_message_packet('testtest'*100, pk)
+        msg = self.crypto_obj.disassemble_message_packet(encrypted_packet, key_manager)
+        print(msg)
 
-        sk_2 = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=4096,
-            backend=default_backend()
-        )
-        #test_content = self.crypto_obj._Crypto__encrypt_with_rsa(
-        #    asn1_encode(univ.OctetString("1"*200)), pk)
-        #self.crypto_obj._Crypto__decrypt_with_rsa(
-        #    test_content, sk)
-        self.crypto_obj.assemble_message_packet('test'*100000, pk)
-        #self.crypto_obj.assemble_message_packet('test'*100, pk, [sk_2, "45234589"])

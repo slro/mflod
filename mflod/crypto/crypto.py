@@ -131,7 +131,7 @@ class Crypto(object):
             pgp_key_id = urandom(8)
 
             # setting signature oid to zeros
-            algo_identifier['algorithm'] = '0.0.0.0.0.0.0'
+            algo_identifier['algorithm'] = const.NO_SIGN_OID
 
         # creating instance of MPHeader class
         mp_header = asn1_dec.MPHeader()
@@ -160,7 +160,7 @@ class Crypto(object):
         # encrypting parts of encoded header with RSA
         # we encrypt several part due to restriction of the RSA max encryption
         # length
-        enc_header = self.__encrypt_with_rsa(encoded_mp_header[0:rsa_max_len],
+        enc_header = self.__encrypt_with_rsa(encoded_mp_header[:rsa_max_len],
                                              recipient_pk) + \
                      self.__encrypt_with_rsa(encoded_mp_header[rsa_max_len:],
                                              recipient_pk)
@@ -188,13 +188,9 @@ class Crypto(object):
         message_packet['hmacBlock'] = hmac_block
         message_packet['contentBlock'] = content_block
 
-        with open('message.der', 'wb') as f:
-            f.write(asn1_encode(message_packet))
-            f.close()
         return asn1_encode(message_packet)
 
-
-    def disassemble_message_packet(self, msg_packet, get_sks_func, get_pk_byid_func):
+    def disassemble_message_packet(self, msg_packet, key_manager):
         """ Attempt to disassemble FLOD message packet that was received
 
         @developer: ddnomad
@@ -220,17 +216,17 @@ class Crypto(object):
 
         :param msg_packet:          string DER-encoded ASN.1 structure of FLOD
                                     message packet to decrypt
-        :param get_sks_func:        generator that yields all available secret
-                                    keys of a user. The user keys have to be
-                                    instances of cryptography.hazmat.primitives
-                                    .assymetric.rsa.RSAPublicKey class.
-        :param get_pk_byid_func:    function that returns an instance of
-                                    cryptography.hazmat.primitives.assymetric.rsa
-                                    .RSAPrivateKey that corresponds to a
-                                    PGPKeyID that is passed to it. If there is
-                                    no such key available the function should
-                                    return a list of instances of the same
-                                    class that are non-PGP keys without IDs.
+        # :param get_sks_func:        generator that yields all available secret
+        #                             keys of a user. The user keys have to be
+        #                             instances of cryptography.hazmat.primitives
+        #                             .assymetric.rsa.RSAPublicKey class.
+        # :param get_pk_byid_func:    function that returns an instance of
+        #                             cryptography.hazmat.primitives.assymetric.rsa
+        #                             .RSAPrivateKey that corresponds to a
+        #                             PGPKeyID that is passed to it. If there is
+        #                             no such key available the function should
+        #                             return a list of instances of the same
+        #                             class that are non-PGP keys without IDs.
 
         :return: one of the following lists (see supplementary exit codes
                  paragraph for details):
@@ -262,22 +258,22 @@ class Crypto(object):
         header_block_asn1 = message_packet_asn1[0][1]
 
         # get encrypted from a header container
-        mp_header_ct = bytes(header_block_asn1[0][1])
+        mp_header_ct = bytes(header_block_asn1[1])
 
         # entering brute-force loop
         self.logger.debug(logstr.ATTEMPT_DECRYPT_HEADER)
 
         # try to decrypt a header with all available user keys
-        for user_sk in get_sks_func():
+        for user_sk in key_manager.yield_keys():
 
             # determine a size of a current user secret key
-            key_size = user_sk.key_size
+            key_size = user_sk.key_size // 8
 
             # get decrypted first RSA block of MPHeader
             try:
                 mp_header_pt_init_block = self.__decrypt_with_rsa(
-                        mp_header_ct[key_size], user_sk)
-            except InvalidKey:
+                        mp_header_ct[:key_size], user_sk)
+            except (InvalidKey, ValueError):
 
                 # probably key size doesn't match
                 self.logger.debug(logstr.INVALID_RSA_KEY)
@@ -285,11 +281,11 @@ class Crypto(object):
 
             # calculate identification string offset
             offset = self.__calculate_der_id_string_offset(
-                    list(mp_header_pt_init_block))
+                    mp_header_pt_init_block)
 
             # check whether id string matches
-            if not mp_header_pt_init_block[offset, offset + 4] == \
-                    bytes(const.IS):
+            if not mp_header_pt_init_block[offset:offset + 4] == \
+                    bytes(const.IS, 'utf-8'):
 
                 # key doesn't fit
                 self.logger.debug(logstr.WRONG_RSA_KEY)
@@ -308,17 +304,17 @@ class Crypto(object):
                 mp_header_pt = mp_header_pt_init_block
 
                 # decrypt the whole MPHeader DER
-                for rsa_block in mp_header_ct[key_size, len(
-                        mp_header_ct), key_size]:
+                for rsa_block in [mp_header_ct[i:i+key_size] for i in
+                                  range(key_size, len(mp_header_ct), key_size)]:
 
-                    # append decryted chunks
+                    # append decrypted chunks
                     mp_header_pt += self.__decrypt_with_rsa(rsa_block, user_sk)
 
                 # decode MPHeader from DER
                 mp_header_pt_asn1 = asn1_decode(mp_header_pt)
 
                 # determine whether the header was signed
-                sign_oid = str(mp_header_pt_asn1[0][1])
+                sign_oid = str(mp_header_pt_asn1[0][1][0])
                 pgp_key_id = str(mp_header_pt_asn1[0][2])
                 signature = bytes(mp_header_pt_asn1[0][3])
                 hmac_key = bytes(mp_header_pt_asn1[0][4])
@@ -331,7 +327,7 @@ class Crypto(object):
                     self.logger.info(logstr.MESSAGE_IS_SIGNED)
 
                     # get signer public key
-                    signer_cands = get_pk_byid_func(pgp_key_id)
+                    signer_cands = key_manager.get_pk_by_pgp_id(pgp_key_id)
 
                     # there is a public key
                     if isinstance(signer_cands, RSAPublicKey):
@@ -410,7 +406,7 @@ class Crypto(object):
         self.logger.info(logstr.MESSAGE_NOT_FOR_USER)
         raise exc.NoMatchingRSAKeyForMessage("")
 
-    def __calculate_der_id_string_offset(der):
+    def __calculate_der_id_string_offset(self, der):
         """ Determine an offset to identification string in header fragment
 
         :param der: DER-encoded fragment of MPHeader ASN.1 structure
@@ -423,8 +419,7 @@ class Crypto(object):
         MSB_MASK = 0x80
         LEN_SPEC_MASK = 0x7F
 
-        der.pop(0)
-        len_spec = ord(der.pop(0))
+        len_spec = der[1]
         if len_spec & MSB_MASK == MSB_MASK:
             len_of_len = len_spec & LEN_SPEC_MASK
             return len_of_len + 4

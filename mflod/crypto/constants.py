@@ -7,6 +7,7 @@ class Constants(object):
     SHA1_OID = '1.3.14.3.2.26'
     RSASSA_PSS_OID = '1.2.840.113549.1.1.10'
     ID_RSAES_OAEP = '1.2.840.113549.1.1.7'
+    NO_SIGN_OID = '0.0.0.0.0.0.0'
 
     # Crypto
     AES_BLOCK_SIZE = 128
