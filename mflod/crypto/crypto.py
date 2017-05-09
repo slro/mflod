@@ -195,10 +195,6 @@ class Crypto(object):
         message_packet['hmacBlock'] = hmac_block
         message_packet['contentBlock'] = content_block
 
-        with open('message.der', 'wb') as f:
-            f.write(asn1_encode(message_packet))
-            f.close()
-
         return asn1_encode(message_packet)
 
     def disassemble_message_packet(self, msg_packet, key_manager):
