@@ -54,17 +54,17 @@ class KeyManager(GnuPGWrapper):
     def get_pgp_rsa_keys(self):
         """
         Iterates through retrieved PGP private keys, get the RSA semi-primes information (from pgpdump),
-        invokes __yield_rsa_key_from_pgp private method and yields returned data.
+        invokes __return_rsa_key_from_pgp private method and yields returned data.
 
         :return: Generator
         """
         try:
             for private_key in self.retrieve_local_pgp_private_keys():
-                yield self.__yield_rsa_key_from_pgp(private_key.encode('utf-8'))
+                yield self.__return_rsa_key_from_pgp(private_key.encode('utf-8'))
         except Exception as ERROR:
             self.logger.error(ERROR)
 
-    def __yield_rsa_key_from_pgp(self, pgp_key):
+    def __return_rsa_key_from_pgp(self, pgp_key):
         """
         Accepts pgp_key bytes, process it to pgpdump packets, which is a Generator class with following
         consisting objects:
@@ -73,7 +73,77 @@ class KeyManager(GnuPGWrapper):
             UserIDPacket object
             SignaturePacket object
 
+            SecretKeyPacket object dict structure:
+
+                {
+                    'prime_p': '...', (p)
+                    'prime_q': '...', (q)
+                    'exponent': '...', (e)
+                    'modulus': '...', (p * q = n)
+                    'exponent_d': '...', (d)
+                    'data': '...',
+                    'raw_creation_time': '...',
+                    's2k_type': '...',
+                    'checksum': '...',
+                    'pubkey_version': '...',
+                    'exponent_x': '...',
+                    's2k_id': '...',
+                    's2k_cipher': '...',
+                    'new': '...',
+                    'creation_time': '...',
+                    'fingerprint': '...',
+                    'multiplicative_inverse': '...',
+                    'raw': '...',
+                    'prime': '...',
+                    'length': '...',
+                    'group_gen': '...',
+                    'pub_algorithm_type': '...',
+                    'raw_days_valid': '...',
+                    'name': '...',
+                    'key_id': '...',
+                    's2k_hash': '...',
+                    'raw_pub_algorithm': '...',
+                    'expiration_time': '...',
+                    's2k_iv': '...',
+                    'group_order': '...'
+                }
+
         :param pgp_key: bytes
         :return: str
         """
+        try:
+            packets = list(pgpdump.AsciiData(pgp_key).packets())
+
+            return self.__compute_rsa_private_key(
+                packets[0].__dict__['prime_p'],
+                packets[0].__dict__['prime_q'],
+                packets[0].__dict__['exponent'],
+                packets[0].__dict__['modulus'],
+                packets[0].__dict__['exponent_d']
+            )
+        except Exception as ERROR:
+            self.logger.error(ERROR)
+
+    @classmethod
+    def __compute_rsa_private_key(cls, p, q, e, n, d):
+        """
+        Computes RSA private key based on provided RSA semi-primes
+            and returns cryptography lib instance.
+
+        :param p: int
+        :param q: int
+        :param e: int
+        :param n: int
+        :param d: int
+        :return: object
+        """
         pass
+
+try:
+    cls = KeyManager()
+
+    for rsa_private_key in cls.get_pgp_rsa_keys():
+        print(rsa_private_key)
+
+except Exception as ERR:
+    print(ERR)
