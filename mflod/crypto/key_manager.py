@@ -137,7 +137,19 @@ class KeyManager(GnuPGWrapper):
         :param d: int
         :return: object
         """
-        pass
+
+        # Computes: d % (p - 1)
+        dmp1 = rsa.rsa_crt_dmp1(d, p)
+
+        # Computes: d % (q - 1)
+        dmq1 = rsa.rsa_crt_dmq1(d, q)
+
+        # Modular inverse q of p, (q ^ -1 mod p)
+        iqmp = rsa.rsa_crt_iqmp(p, q)
+
+        public_numbers = rsa.RSAPublicNumbers(e, n)
+
+        return rsa.RSAPrivateNumbers(p, q, d, dmp1, dmq1, iqmp, public_numbers).private_key(default_backend())
 
 try:
     cls = KeyManager()
