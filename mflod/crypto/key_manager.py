@@ -69,7 +69,7 @@ class KeyManager(GnuPGWrapper):
         :return: Object|None
         """
         try:
-            pgp_private_key = self._retrieve_local_pgp_private_key_by_id(key_id)
+            pgp_private_key = self._retrieve_local_pgp_private_key_id(key_id)
 
             if isinstance(pgp_private_key, type(None)):
                 return None
@@ -95,7 +95,7 @@ class KeyManager(GnuPGWrapper):
             if not isinstance(limit, int) or limit == 0:
                 return None
 
-            for count, private_key in enumerate(self.retrieve_local_pgp_private_keys()):
+            for count, private_key in enumerate(self._retrieve_local_pgp_private_keys()):
                 yield self.__return_rsa_key_from_pgp(private_key.encode('utf-8'))
 
                 # Terminates on specified limit
