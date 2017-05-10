@@ -54,6 +54,32 @@ class KeyManager(GnuPGWrapper):
         except Exception as ERROR:
             self.logger.error(ERROR)
 
+    def get_pgp_rsa_key_id(self, key_id):
+        """
+        Searches PGP private key either by keyid or either fingerprint and returns
+            cryptography lib instance on success, None otherwise.
+
+        @developer: tnanoba
+
+            E.g
+                keyid format => 4E2ADFB8D4C78B63
+                fingerprint format => D94FC56AFD1D1AD8B56D35EA9FB10119E057B48F
+
+        :param key_id: str
+        :return: Object|None
+        """
+        try:
+            pgp_private_key = self._retrieve_local_pgp_private_key_by_id(key_id)
+
+            if isinstance(pgp_private_key, type(None)):
+                return None
+
+            return self.__return_rsa_key_from_pgp(
+                pgp_private_key.encode('utf-8')
+            )
+        except Exception as ERROR:
+            self.logger.error(ERROR)
+
     def get_pgp_rsa_keys(self, limit=30):
         """
         Iterates through retrieved PGP private keys, get the RSA semi-primes information (from pgpdump),

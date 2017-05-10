@@ -105,3 +105,24 @@ class GnuPGWrapper(object):
                 yield self.gpg.export_keys(private_key['fingerprint'], secret=True)
         except Exception as ERROR:
             self.logger.error(ERROR)
+
+    def _retrieve_local_pgp_private_key_by_id(self, key_id):
+        """
+        Searches PGP private key either by keyid or either fingerprint and returns on success,
+            otherwise returns None.
+
+        @developer: tnanoba
+
+            E.g
+                keyid format => 4E2ADFB8D4C78B63
+                fingerprint format => D94FC56AFD1D1AD8B56D35EA9FB10119E057B48F
+
+        :param key_id: str
+        :return: str|None
+        """
+        try:
+            private_key = self.gpg.export_keys(key_id, secret=True)
+
+            return None if private_key == '' else private_key
+        except Exception as ERROR:
+            self.logger.error(ERROR)
