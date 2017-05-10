@@ -2,6 +2,7 @@ import pgpdump
 from mflod.crypto.gnupg_wrapper import GnuPGWrapper
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 
 
 class KeyManager(GnuPGWrapper):
@@ -114,7 +115,7 @@ class KeyManager(GnuPGWrapper):
         try:
             packets = list(pgpdump.AsciiData(pgp_key).packets())
 
-            return self.__compute_rsa_private_key(
+            return self.compute_rsa_private_key(
                 packets[0].__dict__['prime_p'],
                 packets[0].__dict__['prime_q'],
                 packets[0].__dict__['exponent'],
@@ -125,7 +126,7 @@ class KeyManager(GnuPGWrapper):
             self.logger.error(ERROR)
 
     @classmethod
-    def __compute_rsa_private_key(cls, p, q, e, n, d):
+    def compute_rsa_private_key(cls, p, q, e, n, d):
         """
         Computes RSA private key based on provided RSA semi-primes
             and returns cryptography lib instance.
@@ -151,11 +152,17 @@ class KeyManager(GnuPGWrapper):
 
         return rsa.RSAPrivateNumbers(p, q, d, dmp1, dmq1, iqmp, public_numbers).private_key(default_backend())
 
-try:
-    cls = KeyManager()
+    @staticmethod
+    def rsa_key_to_pem(rsa_secret_key):
+        """
+        Converts and returns RSA key from cryptography lib instance into RSA key
+            PEM (Privacy Enhanced Mail) format.
 
-    for rsa_private_key in cls.get_pgp_rsa_keys():
-        print(rsa_private_key)
-
-except Exception as ERR:
-    print(ERR)
+        :param rsa_secret_key: object
+        :return: bytes
+        """
+        return rsa_secret_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
