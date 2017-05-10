@@ -65,3 +65,37 @@ class GnuPGWrapper(object):
             self.logger.info('RSA key pair is being deleted. Fingerprint: ' + fingerprint)
         except Exception as ERROR:
             self.logger.error(ERROR)
+
+    def retrieve_local_pgp_private_keys(self):
+        """
+        Iterates through user PGP private keys and yields them
+
+        Retrieved PGP key (private_key variable) dict structure:
+            {
+                'keyid': '...',
+                'expires': '...',
+                'ownertrust': '...',
+                'uids': [
+                    ...
+                ],
+                'subkeys': [
+                    ...
+                ],
+                'fingerprint': '...',
+                'length': '...',
+                'trust': '...',
+                'dummy': '...',
+                'type': '...',
+                'date': '...',
+                'algo': '...',
+            }
+
+        @todo Perhaps filtering based on some criteria becomes handy for future?!
+
+        :return: Generator
+        """
+        try:
+            for private_key in self.gpg.list_keys(secret=True):
+                yield self.gpg.export_keys(private_key['fingerprint'], secret=True)
+        except Exception as ERROR:
+            self.logger.error(ERROR)

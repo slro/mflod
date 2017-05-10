@@ -1,3 +1,4 @@
+import pgpdump
 from mflod.crypto.gnupg_wrapper import GnuPGWrapper
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -49,3 +50,30 @@ class KeyManager(GnuPGWrapper):
             return key
         except Exception as ERROR:
             self.logger.error(ERROR)
+
+    def get_pgp_rsa_keys(self):
+        """
+        Iterates through retrieved PGP private keys, get the RSA semi-primes information (from pgpdump),
+        invokes __yield_rsa_key_from_pgp private method and yields returned data.
+
+        :return: Generator
+        """
+        try:
+            for private_key in self.retrieve_local_pgp_private_keys():
+                yield self.__yield_rsa_key_from_pgp(private_key.encode('utf-8'))
+        except Exception as ERROR:
+            self.logger.error(ERROR)
+
+    def __yield_rsa_key_from_pgp(self, pgp_key):
+        """
+        Accepts pgp_key bytes, process it to pgpdump packets, which is a Generator class with following
+        consisting objects:
+
+            SecretKeyPacket object
+            UserIDPacket object
+            SignaturePacket object
+
+        :param pgp_key: bytes
+        :return: str
+        """
+        pass
