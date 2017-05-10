@@ -13,7 +13,8 @@
     "install_pip3.sh",
     "install_pyasn1.sh",
     "install_gnupg.sh",
-    "install_pgpdump.sh"
+    "install_pgpdump.sh",
+    "install_haveged.sh"
   ],
   "env_mod_path": "/etc/profile.d/env_mod.sh",
   "env_mod_cmds": [
