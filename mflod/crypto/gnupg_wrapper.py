@@ -13,7 +13,7 @@ class GnuPGWrapper(object):
     @todo Pulls down RSA key pair from RSA key server, etc.
 
     Developers:
-        - Tornike Nanobashvili
+        - (tnanoba) Tornike Nanobashvili
     """
 
     def __init__(self):
@@ -31,6 +31,8 @@ class GnuPGWrapper(object):
                        user_email=''):
         """
         Generates PGP key pair on local environment
+
+        @developer: tnanoba
 
         :param key_length: int (defaults to 2048 bits)
         :param user_name: str (defaults to Auto Generated Key)
@@ -55,6 +57,8 @@ class GnuPGWrapper(object):
         """
         Deletes PGP key pair based on provided fingerprint
 
+        @developer: tnanoba
+
         :param fingerprint: str (key HEX SHA1 fingerprint)
         :return: void
         """
@@ -69,6 +73,8 @@ class GnuPGWrapper(object):
     def retrieve_local_pgp_private_keys(self):
         """
         Iterates through user PGP private keys and yields them
+
+        @developer: tnanoba
 
         Retrieved PGP key (private_key variable) dict structure:
             {

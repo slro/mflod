@@ -15,7 +15,7 @@ class KeyManager(GnuPGWrapper):
     return PGP keys to a cryptography lib object instances for further processing.
 
     Developers:
-        - Tornike Nanobashvili
+        - (tnanoba) Tornike Nanobashvili
     """
 
     def __init__(self):
@@ -31,6 +31,8 @@ class KeyManager(GnuPGWrapper):
         """
         Generates RSA key pair based on provided key_size
         and returns cryptography lib object.
+
+        @developer: tnanoba
 
         Response example:
             cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object
@@ -52,16 +54,28 @@ class KeyManager(GnuPGWrapper):
         except Exception as ERROR:
             self.logger.error(ERROR)
 
-    def get_pgp_rsa_keys(self):
+    def get_pgp_rsa_keys(self, limit=30):
         """
         Iterates through retrieved PGP private keys, get the RSA semi-primes information (from pgpdump),
         invokes __return_rsa_key_from_pgp private method and yields returned data.
 
-        :return: Generator
+        @developer: tnanoba
+
+        :param limit: int
+        :return: Generator|None
         """
         try:
-            for private_key in self.retrieve_local_pgp_private_keys():
+            # Terminates process if limit is not a valid integer or it equals to 0
+            if not isinstance(limit, int) or limit == 0:
+                return None
+
+            for count, private_key in enumerate(self.retrieve_local_pgp_private_keys()):
                 yield self.__return_rsa_key_from_pgp(private_key.encode('utf-8'))
+
+                # Terminates on specified limit
+                if count == limit - 1:
+                    break
+
         except Exception as ERROR:
             self.logger.error(ERROR)
 
@@ -69,6 +83,8 @@ class KeyManager(GnuPGWrapper):
         """
         Accepts pgp_key bytes, process it to pgpdump packets, which is a Generator class with following
         consisting objects:
+
+        @developer: tnanoba
 
             SecretKeyPacket object
             UserIDPacket object
@@ -110,7 +126,7 @@ class KeyManager(GnuPGWrapper):
                 }
 
         :param pgp_key: bytes
-        :return: str
+        :return: object
         """
         try:
             packets = list(pgpdump.AsciiData(pgp_key).packets())
@@ -130,6 +146,8 @@ class KeyManager(GnuPGWrapper):
         """
         Computes RSA private key based on provided RSA semi-primes
             and returns cryptography lib instance.
+
+        @developer: tnanoba
 
         :param p: int
         :param q: int
@@ -157,6 +175,8 @@ class KeyManager(GnuPGWrapper):
         """
         Converts and returns RSA key from cryptography lib instance into RSA key
             PEM (Privacy Enhanced Mail) format.
+
+        @developer: tnanoba
 
         :param rsa_secret_key: object
         :return: bytes
