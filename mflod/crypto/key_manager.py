@@ -25,7 +25,7 @@ class KeyManager(GnuPGWrapper):
 
         self.logger.debug('KeyManager instance is being created.')
 
-    def gen_plain_rsa_key(self, key_size=2048):
+    def generate_plain_rsa_key(self, key_size=2048):
         """
         Generates RSA key pair based on provided key_size
         and returns cryptography lib object.
