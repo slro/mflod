@@ -41,17 +41,14 @@ class GnuPGWrapper(object):
 
         :return: str (RSA key fingerprint (SHA1))
         """
-        try:
-            input_data = self.gpg.gen_key_input(key_type='RSA', key_length=key_length, name_real=user_name,
-                                                name_comment=user_comment, name_email=user_email)
-            key = self.gpg.gen_key(input_data)
+        input_data = self.gpg.gen_key_input(key_type='RSA', key_length=key_length, name_real=user_name,
+                                            name_comment=user_comment, name_email=user_email)
+        key = self.gpg.gen_key(input_data)
 
-            self.logger.info('RSA ' + '(' + str(key_length) + ' bits) key pair is being generated. Fingerprint: ' +
-                             str(key))
+        self.logger.info('RSA ' + '(' + str(key_length) + ' bits) key pair is being generated. Fingerprint: ' +
+                         str(key))
 
-            return key.fingerprint
-        except Exception as ERROR:
-            self.logger.error(ERROR)
+        return key.fingerprint
 
     def delete_pgp_key(self, fingerprint):
         """
@@ -100,11 +97,8 @@ class GnuPGWrapper(object):
 
         :return: Generator
         """
-        try:
-            for private_key in self.gpg.list_keys(secret=True):
-                yield self.gpg.export_keys(private_key['fingerprint'], secret=True)
-        except Exception as ERROR:
-            self.logger.error(ERROR)
+        for private_key in self.gpg.list_keys(secret=True):
+            yield self.gpg.export_keys(private_key['fingerprint'], secret=True)
 
     def _retrieve_local_pgp_private_key_id(self, key_id):
         """
