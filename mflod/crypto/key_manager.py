@@ -74,7 +74,7 @@ class KeyManager(GnuPGWrapper):
             if isinstance(pgp_private_key, type(None)):
                 raise ValueError
 
-            return self.__return_rsa_key_from_pgp(
+            return self._return_rsa_key_from_pgp(
                 pgp_private_key.encode('utf-8')
             )
         except Exception as ERROR:
@@ -84,7 +84,7 @@ class KeyManager(GnuPGWrapper):
     def get_pgp_rsa_keys(self, limit=30):
         """
         Iterates through retrieved PGP private keys, get the RSA semi-primes information (from pgpdump),
-        invokes __return_rsa_key_from_pgp private method and yields returned data.
+        invokes _return_rsa_key_from_pgp private method and yields returned data.
 
         @developer: tnanoba
 
@@ -97,7 +97,7 @@ class KeyManager(GnuPGWrapper):
                 raise ValueError
 
             for count, private_key in enumerate(self._retrieve_local_pgp_private_keys()):
-                yield self.__return_rsa_key_from_pgp(private_key.encode('utf-8'))
+                yield self._return_rsa_key_from_pgp(private_key.encode('utf-8'))
 
                 # Terminates on specified limit
                 if count == limit - 1:
@@ -106,7 +106,7 @@ class KeyManager(GnuPGWrapper):
             self.logger.error(ERROR)
             return None
 
-    def __return_rsa_key_from_pgp(self, pgp_key):
+    def _return_rsa_key_from_pgp(self, pgp_key):
         """
         Accepts pgp_key bytes, process it to pgpdump packets, which is a Generator class with following
         consisting objects:
