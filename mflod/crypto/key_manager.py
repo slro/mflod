@@ -72,13 +72,14 @@ class KeyManager(GnuPGWrapper):
             pgp_private_key = self._retrieve_local_pgp_private_key_id(key_id)
 
             if isinstance(pgp_private_key, type(None)):
-                return None
+                raise ValueError
 
             return self.__return_rsa_key_from_pgp(
                 pgp_private_key.encode('utf-8')
             )
         except Exception as ERROR:
             self.logger.error(ERROR)
+            return None
 
     def get_pgp_rsa_keys(self, limit=30):
         """
@@ -93,7 +94,7 @@ class KeyManager(GnuPGWrapper):
         try:
             # Terminates process if limit is not a valid integer or it equals to 0
             if not isinstance(limit, int) or limit == 0:
-                return None
+                raise ValueError
 
             for count, private_key in enumerate(self._retrieve_local_pgp_private_keys()):
                 yield self.__return_rsa_key_from_pgp(private_key.encode('utf-8'))
@@ -101,9 +102,9 @@ class KeyManager(GnuPGWrapper):
                 # Terminates on specified limit
                 if count == limit - 1:
                     break
-
         except Exception as ERROR:
             self.logger.error(ERROR)
+            return None
 
     def __return_rsa_key_from_pgp(self, pgp_key):
         """
