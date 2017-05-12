@@ -15,8 +15,7 @@
     "install_gnupg.sh",
     "install_pgpdump.sh",
     "install_haveged.sh",
-    "install_unittest_data_provider.sh",
-    "install_coverage.sh"
+    "install_unittest_data_provider.sh"
   ],
   "env_mod_path": "/etc/profile.d/env_mod.sh",
   "env_mod_cmds": [
