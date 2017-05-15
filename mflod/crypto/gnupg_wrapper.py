@@ -16,13 +16,15 @@ class GnuPGWrapper(object):
         - (tnanoba) Tornike Nanobashvili
     """
 
-    def __init__(self):
+    def __init__(self, gnupg_home_dir):
         """
         Instantiate GnuPGWrapper class and creates following sub instances:
             - Defines GnuPG instance
             - Defines logging instance
+
+        @:param gnupg_home_dir: str (Full pathname to directory containing the public and private keyrings.)
         """
-        self.gpg = gnupg.GPG()
+        self.gpg = gnupg.GPG(gnupghome=gnupg_home_dir)
 
         self.logger = logging.getLogger(__name__)
         self.logger.debug('GnuPGWrapper instance is being created.')

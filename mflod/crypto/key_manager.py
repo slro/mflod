@@ -1,4 +1,5 @@
 import pgpdump
+import os
 from mflod.crypto.gnupg_wrapper import GnuPGWrapper
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -18,12 +19,14 @@ class KeyManager(GnuPGWrapper):
         - (tnanoba) Tornike Nanobashvili
     """
 
-    def __init__(self):
+    def __init__(self, gnupg_home_dir='' + os.environ['HOME'] + '/.gnupg/'):
         """
         Initialize KeyManager and parent GnuPGWrapper classes
+
+        @:param gnupg_home_dir: str (Default is whatever GnuPG defaults to)
         """
 
-        GnuPGWrapper.__init__(self)
+        GnuPGWrapper.__init__(self, gnupg_home_dir)
 
         self.logger.debug('KeyManager instance is being created.')
 
