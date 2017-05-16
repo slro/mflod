@@ -348,68 +348,129 @@ The structure above encapsulates the whole content of the message packet. This
 structure is then DER-encoded and sent to the recipient. All fields except for
 a `protocolVersion` are DER-encoded into octet string before the whole `MessagePacket`
 is also encoded into DER.
+```
 
 MFlod Specific Implementation Details
 -------------------------------------
 
-Key Manager
+### Key Manager
 
-    Description: Key Manager manages operations on user keys.
+> Description: Key Manager manages operations on user PGP/RSA keys.
 
-    Behind the scenes it uses and implements GnuPG wrapper and pgpdump.
-        - GnuPG wrapper _http://pythonhosted.org/gnupg/gnupg.html#gnupg-module_ for PGP key manipulations
-        - pgpdump https://pypi.python.org/pypi/pgpdump/1.3 for parsing PGP key and retrieve the
+> Behind the scenes it uses and implements GnuPG wrapper and pgpdump packages.
+
+- GnuPG wrapper **http://pythonhosted.org/gnupg/gnupg.html#gnupg-module** for PGP key manipulations
+- pgpdump **https://pypi.python.org/pypi/pgpdump/1.3** for parsing PGP key and retrieve the
             information needed for generating plain RSA key based on PGP key semi-primes
 
-    KeyManager class instantiation accepts GnuPG home directory path, it is optional and defaults
+> KeyManager class instantiation accepts GnuPG home directory path, it is optional and defaults
         to $HOME/.gnupg/ directory though.
 
-    List of provided methods:
-        - generate_plain_rsa_key
-        - get_pgp_rsa_key_id
-        - get_pgp_rsa_keys
-        - _return_rsa_key_from_pgp
-        - compute_rsa_private_key
-        - rsa_private_key_to_pem
-        - rsa_public_key_to_pem
-        - generate_pgp_key
-        - delete_pgp_key
-        - _retrieve_local_pgp_keys
-        - _retrieve_local_pgp_key_id
+List of provided methods:
+-------------------------
+    - generate_plain_rsa_key
+    - get_pgp_rsa_key_id
+    - get_pgp_rsa_keys
+    - _return_rsa_key_from_pgp
+    - compute_rsa_private_key
+    - compute_rsa_public_key
+    - rsa_private_key_to_pem
+    - rsa_public_key_to_pem
+    - generate_pgp_key
+    - delete_pgp_key
+    - _retrieve_local_pgp_keys
+    - _retrieve_local_pgp_key_id
 
-    generate_plain_rsa_key: accepts key_size parameter (defaults to 2048) and generates plain RSA private key,
-        returns cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object.
+> **generate_plain_rsa_key**:
+-
+        Params: (key_size=2048)
+            - (int) RSA key size, defaults to 2048 bits
+        Description: Generates plain RSA private key and
+            returns cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object.
 
-    get_pgp_rsa_key_id: accepts PGP key fingerprint and returns RSA private key of provided PGP key as a
-        cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object on success, otherwise None.
+> **get_pgp_rsa_key_id**:
+-
+        Params: (key_id, secret=True)
+            - (str) PGP key fingerprint
+            - (boolean) On True process private keys, on False public keys
+        Description: Returns RSA private key of provided PGP key as a
+            cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object on success, otherwise None.
 
-    get_pgp_rsa_keys: Returns Generator objects number of limit parameter quantity, the RSA private key available
-        throughout PGP key chain as a cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object.
+> **get_pgp_rsa_keys**:
+-
+        Params: (limit=30, secret=True)
+            - (int) limit number how many PGP keys has to be processed, negative number means unlimited
+            - (boolean) On True process private keys, on False public keys
+        Description: Returns Generator object throughout local PGP key chain as a
+            cryptography.hazmat.backends.openssl.rsa.(_RSAPrivateKey|_RSAPublicKey) object.
 
-        - limit parameter set defaults to 30. Negative value means unlimited, thus all the PGP private keys will be
-            retrieved and processed throughout the PGP key chain.
-
-    _return_rsa_key_from_pgp: "Protected" method, used internally to compute and return RSA private key
+> _**return_rsa_key_from_pgp**:
+-
+        Params: (pgp_key, secret)
+            - PGP key
+            - One True process private keys, on False public keys
+        Description: Used internally ("protected" method) to compute and return RSA (private|public) key
         based on PGP key.
 
-    compute_rsa_private_key: Computes RSA private key based on RSA semi-primes (p, q, e, n, d) and
-        returns as cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object.
+> **compute_rsa_private_key**:
+-
+        Params: (p, q, e, n, d)
+            - Prime p
+            - Prime q
+            - Public exponent
+            - Modulus
+            - Private key
+        Description: Computes RSA private key based on RSA semi-primes (p, q, e, n, d) and returns as
+            cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object.
 
-    rsa_private_key_to_pem: Converts and returns RSA private key from cryptography object to PEM format.
+> **compute_rsa_public_key**:
+-
+        Params: (e, n)
+            - Public exponent
+            - Modulus
+        Description: Computes RSA public key based on RSA semi-primes returns as
+            cryptography.hazmat.backends.openssl.rsa._RSAPublicKey object.
 
-    rsa_public_key_to_pem: Converts and returns RSA public key from cryptography object to PEM format.
+> **rsa_private_key_to_pem**:
+-
+        Params: (rsa_secret_key)
+            - cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object
+        Desciption: Converts and returns RSA private key from cryptography object to PEM format.
 
-    generate_pgp_key: Generates PGP key pair based on provided parameters.
+> **rsa_public_key_to_pem**:
+-
+        Params: (rsa_public_key)
+            - cryptography.hazmat.backends.openssl.rsa._RSAPublicKey object
+        Description: Converts and returns RSA public key from cryptography object to PEM format.
 
-        - key_length:       defaults 2048
-        - user_name:        Auto Generated Key
-        - user_comment:     Generated by KeyManager
-        - user_email:       <username>@<hostname>
+> **generate_pgp_key**:
+-
+        Params: (key_length=2048, user_name='Auto Generated Key', user_comment='Generated by KeyManager', user_email='')
+            - defaults to '2048 bits'
+            - defaults to 'Auto Generated Key'
+            - defaults to 'Generated by KeyManager'
+            - defaults to '<username>@<hostname>'
+        Description: Generates PGP key pair based on provided parameters.
 
-    delete_pgp_key: Deletes PGP key pair with the provided PGP key fingerprint.
+> **delete_pgp_key**:
+-
+        Params: (fingerprint)
+            - PGP key fingerprint
+        Description: Deletes PGP key pair with the provided PGP key fingerprint.
 
-    _retrieve_local_pgp_keys: "Protected" method, used internally to retrieve all the PGP (private/public) keys.
+> _**retrieve_local_pgp_keys**:
+-
+        Params: (secret_key)
+            - On True process private keys, on False public keys.
+        Description: Used internally ("Protected" method) to retrieve all the PGP (private/public) keys from local
+            PGP key chain.
 
-    _retrieve_local_pgp_key_id: "Protected" method, retrieves PGP (private/public) key with fingerprint.
+> _**retrieve_local_pgp_key_id**:
+-
+        Params: (key_id, secret_key)
+            - PGP key fingerprint
+            - On True process private keys, on False public keys.
+        Description: Used internally ("Protected" method), retrieves PGP (private/public) key with
+            the specified fingerprint.
 
-    NB: test_key_manager.py provides 100 % coverage unit tests for KeyManager class.
+> NB: **test_key_manager.py** provides **100%** coverage unit tests for KeyManager class and on its dependencies.
