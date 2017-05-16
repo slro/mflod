@@ -370,12 +370,12 @@ Key Manager
         - get_pgp_rsa_keys
         - _return_rsa_key_from_pgp
         - compute_rsa_private_key
-        - rsa_key_to_pem
+        - rsa_private_key_to_pem
         - rsa_public_key_to_pem
         - generate_pgp_key
         - delete_pgp_key
-        - _retrieve_local_pgp_private_keys
-        - _retrieve_local_pgp_private_key_id
+        - _retrieve_local_pgp_keys
+        - _retrieve_local_pgp_key_id
 
     generate_plain_rsa_key: accepts key_size parameter (defaults to 2048) and generates plain RSA private key,
         returns cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object.
@@ -395,7 +395,7 @@ Key Manager
     compute_rsa_private_key: Computes RSA private key based on RSA semi-primes (p, q, e, n, d) and
         returns as cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object.
 
-    rsa_key_to_pem: Converts and returns RSA private key from cryptography object to PEM format.
+    rsa_private_key_to_pem: Converts and returns RSA private key from cryptography object to PEM format.
 
     rsa_public_key_to_pem: Converts and returns RSA public key from cryptography object to PEM format.
 
@@ -408,8 +408,8 @@ Key Manager
 
     delete_pgp_key: Deletes PGP key pair with the provided PGP key fingerprint.
 
-    _retrieve_local_pgp_private_keys: "Protected" method, used internally to retrieve all the PGP private keys.
+    _retrieve_local_pgp_keys: "Protected" method, used internally to retrieve all the PGP (private/public) keys.
 
-    _retrieve_local_pgp_private_key_id: "Protected" method, retrieves PGP private key with fingerprint.
+    _retrieve_local_pgp_key_id: "Protected" method, retrieves PGP (private/public) key with fingerprint.
 
     NB: test_key_manager.py provides 100 % coverage unit tests for KeyManager class.

@@ -69,9 +69,9 @@ class GnuPGWrapper(object):
         except Exception as ERROR:
             self.logger.error(ERROR)
 
-    def _retrieve_local_pgp_private_keys(self):
+    def _retrieve_local_pgp_keys(self, secret_key=True):
         """
-        Iterates through user PGP private keys and yields them
+        Iterates through user PGP keys and yields (private/public based on secret_key, defaults to private) them
 
         @developer: tnanoba
 
@@ -97,15 +97,16 @@ class GnuPGWrapper(object):
 
         @todo Perhaps filtering based on some criteria becomes handy for future?!
 
+        :param secret_key: bool
         :return: Generator
         """
-        for private_key in self.gpg.list_keys(secret=True):
-            yield self.gpg.export_keys(private_key['fingerprint'], secret=True)
+        for key in self.gpg.list_keys(secret=secret_key):
+            yield self.gpg.export_keys(key['fingerprint'], secret=secret_key)
 
-    def _retrieve_local_pgp_private_key_id(self, key_id):
+    def _retrieve_local_pgp_key_id(self, key_id, secret_key=True):
         """
-        Searches PGP private key either by keyid or either fingerprint and returns on success,
-            otherwise returns None.
+        Searches PGP (private or public, based on secret_key bool value, defaults to private) key either by keyid or
+            either fingerprint and returns on success, otherwise returns None.
 
         @developer: tnanoba
 
@@ -114,11 +115,12 @@ class GnuPGWrapper(object):
                 fingerprint format => D94FC56AFD1D1AD8B56D35EA9FB10119E057B48F
 
         :param key_id: str
+        :param secret_key: bool
         :return: str|None
         """
         try:
-            private_key = self.gpg.export_keys(key_id, secret=True)
+            key = self.gpg.export_keys(key_id, secret=secret_key)
 
-            return None if private_key == '' else private_key
+            return None if key == '' else key
         except Exception as ERROR:
             self.logger.error(ERROR)

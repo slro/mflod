@@ -57,7 +57,7 @@ class KeyManager(GnuPGWrapper):
         except Exception as ERROR:
             self.logger.error(ERROR)
 
-    def get_pgp_rsa_key_id(self, key_id):
+    def get_pgp_rsa_key_id(self, key_id, secret=True):
         """
         Searches PGP private key either by keyid or either fingerprint and returns
             cryptography lib instance on success, None otherwise.
@@ -69,22 +69,24 @@ class KeyManager(GnuPGWrapper):
                 fingerprint format => D94FC56AFD1D1AD8B56D35EA9FB10119E057B48F
 
         :param key_id: str
+        :param secret: bool (True for private key, False for public key)
         :return: Object|None
         """
         try:
-            pgp_private_key = self._retrieve_local_pgp_private_key_id(key_id)
+            pgp_key = self._retrieve_local_pgp_key_id(key_id, secret)
 
-            if isinstance(pgp_private_key, type(None)):
+            if isinstance(pgp_key, type(None)):
                 raise ValueError
 
             return self._return_rsa_key_from_pgp(
-                pgp_private_key.encode('utf-8')
+                pgp_key.encode('utf-8'),
+                secret
             )
         except Exception as ERROR:
             self.logger.error(ERROR)
             return None
 
-    def get_pgp_rsa_keys(self, limit=30):
+    def get_pgp_rsa_keys(self, limit=30, secret=True):
         """
         Iterates through retrieved PGP private keys, get the RSA semi-primes information (from pgpdump),
         invokes _return_rsa_key_from_pgp private method and yields returned data.
@@ -92,15 +94,16 @@ class KeyManager(GnuPGWrapper):
         @developer: tnanoba
 
         :param limit: int
-        :return: Generator|None
+        :param secret: bool (True for private key, False for public key)
+        :return: Generator
         """
         try:
             # Terminates process if limit is not a valid integer or it equals to 0
             if not isinstance(limit, int) or limit == 0:
                 raise ValueError
 
-            for count, private_key in enumerate(self._retrieve_local_pgp_private_keys()):
-                yield self._return_rsa_key_from_pgp(private_key.encode('utf-8'))
+            for count, gpg_key in enumerate(self._retrieve_local_pgp_keys(secret)):
+                yield self._return_rsa_key_from_pgp(gpg_key.encode('utf-8'), secret)
 
                 # Terminates on specified limit
                 if count == limit - 1:
@@ -109,7 +112,7 @@ class KeyManager(GnuPGWrapper):
             self.logger.error(ERROR)
             return None
 
-    def _return_rsa_key_from_pgp(self, pgp_key):
+    def _return_rsa_key_from_pgp(self, pgp_key, secret):
         """
         Accepts pgp_key bytes, process it to pgpdump packets, which is a Generator class with following
         consisting objects:
@@ -156,18 +159,27 @@ class KeyManager(GnuPGWrapper):
                 }
 
         :param pgp_key: bytes
+        :param secret: bool
         :return: object
         """
         try:
             packets = list(pgpdump.AsciiData(pgp_key).packets())
 
-            return self.compute_rsa_private_key(
-                packets[0].__dict__['prime_p'],
-                packets[0].__dict__['prime_q'],
-                packets[0].__dict__['exponent'],
-                packets[0].__dict__['modulus'],
-                packets[0].__dict__['exponent_d']
-            )
+            if secret:
+                # Returns RSA private key instance
+                return self.compute_rsa_private_key(
+                    packets[0].__dict__['prime_p'],
+                    packets[0].__dict__['prime_q'],
+                    packets[0].__dict__['exponent'],
+                    packets[0].__dict__['modulus'],
+                    packets[0].__dict__['exponent_d']
+                )
+            else:
+                # Returns RSA public key instance
+                return self.compute_rsa_public_key(
+                    packets[0].__dict__['exponent'],
+                    packets[0].__dict__['modulus'],
+                )
         except Exception as ERROR:
             self.logger.error(ERROR)
 
@@ -200,8 +212,20 @@ class KeyManager(GnuPGWrapper):
 
         return rsa.RSAPrivateNumbers(p, q, d, dmp1, dmq1, iqmp, public_numbers).private_key(default_backend())
 
+    @classmethod
+    def compute_rsa_public_key(cls, e, n):
+        """
+        Computes RSA public key based on provided RSA semi-primes (e, n)
+                and returns cryptography lib instance.
+        :return: object
+        """
+
+        public_numbers = rsa.RSAPublicNumbers(e, n)
+
+        return public_numbers.public_key(default_backend())
+
     @staticmethod
-    def rsa_key_to_pem(rsa_secret_key):
+    def rsa_private_key_to_pem(rsa_secret_key):
         """
         Converts and returns RSA key from cryptography lib instance into RSA key
             PEM (Privacy Enhanced Mail) format.

@@ -62,8 +62,11 @@ class TestKeyManager(unittest.TestCase):
         # Test case for many pgp keys
         self.test_get_pgp_rsa_keys()
 
-        # Test case for one pgp key defined by pgp_fingerprint
-        self.test_get_pgp_rsa_key_id(pgp_fingerprint)
+        # Test case for one pgp key with pgp_fingerprint for private key testing
+        self.test_get_pgp_rsa_key_id(pgp_fingerprint, True)
+
+        # Test case for one pgp key with pgp_fingerprint for public key testing
+        self.test_get_pgp_rsa_key_id(pgp_fingerprint, False)
 
         # Test case for deleting pgp key pair
         self.test_delete_pgp_key(pgp_fingerprint)
@@ -86,7 +89,7 @@ class TestKeyManager(unittest.TestCase):
         for response in self.manager.get_pgp_rsa_keys(limit):
             self.assertIsInstance(response, rsa._RSAPrivateKey)
 
-    def test_get_pgp_rsa_key_id(self, pgp_fingerprint=None):
+    def test_get_pgp_rsa_key_id(self, pgp_fingerprint=None, secret=True):
         """ Unit tests KeyManager class get_pgp_rsa_key_id method
 
         Asserts that in case of provided pgp_fingerprint method returns _RSAPrivateKey instance,
@@ -103,10 +106,16 @@ class TestKeyManager(unittest.TestCase):
                 None
             )
         else:
-            self.assertIsInstance(
-                self.manager.get_pgp_rsa_key_id(pgp_fingerprint),
-                rsa._RSAPrivateKey
-            )
+            if secret:
+                self.assertIsInstance(
+                    self.manager.get_pgp_rsa_key_id(pgp_fingerprint, True),
+                    rsa._RSAPrivateKey
+                )
+            else:
+                self.assertIsInstance(
+                    self.manager.get_pgp_rsa_key_id(pgp_fingerprint, False),
+                    rsa._RSAPublicKey
+                )
 
     def test_delete_pgp_key(self, pgp_fingerprint=None):
         """ Unit tests GnuPGWrapper class delete_pgp_key method
@@ -213,13 +222,13 @@ ua40aPHoDf7fywVwzRtRGJ241VlBJDHTIRZ0iAzfv0J1l30Cb3g=
         Firstly test asserts that the aforementioned method generates correct RSA private key based on
         provided RSA semi-primes (p, q, e, n, d).
 
-        Secondly test asserts that the rsa_key_to_pem method correctly converts cryptography lib instance
+        Secondly test asserts that the rsa_private_key_to_pem method correctly converts cryptography lib instance
         into a PEM format.
 
         :return: void
         """
         self.assertEqual(
-            KeyManager.rsa_key_to_pem(
+            KeyManager.rsa_private_key_to_pem(
                 KeyManager.compute_rsa_private_key(p, q, e, n, d)
             ).decode('utf-8'),
             expected,
@@ -249,7 +258,7 @@ ua40aPHoDf7fywVwzRtRGJ241VlBJDHTIRZ0iAzfv0J1l30Cb3g=
 
         :return: void
         """
-        self.manager._return_rsa_key_from_pgp('bar')
+        self.manager._return_rsa_key_from_pgp('bar', True)
 
         self.assertRaises(Exception)
 
