@@ -208,6 +208,8 @@ class KeyManager(GnuPGWrapper):
 
         @developer: tnanoba
 
+        @link @link https://cryptography.io/en/latest/hazmat/primitives/asymmetric/rsa/
+
         :param rsa_secret_key: object
         :return: bytes
         """
@@ -215,4 +217,24 @@ class KeyManager(GnuPGWrapper):
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.NoEncryption(),
+        )
+
+    @staticmethod
+    def rsa_public_key_to_pem(rsa_public_key):
+        """
+        Converts and returns RSA public key from cryptography lib instance into RSA public key
+            PEM (Privacy Enhanced Mail) format.
+
+        @developer: tnanoba
+
+        @link https://cryptography.io/en/latest/hazmat/primitives/asymmetric/rsa/
+
+        @note Generating RSA public key from RSA private key: "private_rsa_key.public_key()"
+
+        :param rsa_public_key: object
+        :return: bytes
+        """
+        return rsa_public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
