@@ -227,14 +227,17 @@ ua40aPHoDf7fywVwzRtRGJ241VlBJDHTIRZ0iAzfv0J1l30Cb3g=
         )
 
     def test_rsa_public_key_to_pem(self):
-        """ Unit tests whether no exception occurs on RSA public key generation
+        """ Unit tests whether no exception occurs on RSA public key generation and result is instance of bytes
+
         @developer: tnanoba
 
         :return: void
         """
         rsa_public_key = self.manager.generate_plain_rsa_key(512).public_key()
 
-        KeyManager.rsa_public_key_to_pem(rsa_public_key)
+        self.assertTrue(
+            isinstance(KeyManager.rsa_public_key_to_pem(rsa_public_key), bytes)
+        )
 
     def test_return_rsa_key_from_pgp_method(self):
         """ Unit tests KeyManager Class "protected" _return_rsa_key_from_pgp method
