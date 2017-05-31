@@ -30,7 +30,7 @@ While the above mentioned features are a valuable addition to ensure
 communication security in general, they all focus on availability and
 information concealing while leaking all kinds of *meta-information*.
 
-The main motivation affecting **FLOD** protocol design decision is requirement
+The main motivation affecting **FLOD** protocol design decisions is a requirement
 to provide a best effort attempt to hide any information about communicating
 parties.
 
