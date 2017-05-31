@@ -6,7 +6,7 @@ source provision_helper.sh
 REQ_FILE_PATH=/vagrant/requirements.txt
 
 install_package 'pip3' "
-apt-get install -y python3-pip
+pacman -S --noconfirm python-pip
 "
 
 # install packages from freezed requirements

@@ -27,12 +27,13 @@ Vagrant.configure(2) do |config|
     # base box to use
     config.vm.box = BASE_BOX
 
+    # NOTE: not applicable for Arch Linux
     # fixing annoying 'stdin: is not a tty' error
     # as seen at http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html
-    config.vm.provision "fix_no_tty", type: "shell" do |s|
-        s.privileged = false
-        s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
-    end
+#     config.vm.provision "fix_no_tty", type: "shell" do |s|
+#         s.privileged = false
+#         s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+#     end
 
     # running a set of provision scripts to prepare a vbox
     PROV_SCRIPTS.each do |pscript|

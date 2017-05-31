@@ -40,7 +40,6 @@ class TestCrypto(unittest.TestCase):
         self.crypto_obj = Crypto()
         self.key_manager = DummyKeyManager()
 
-    @unittest.skip("skip")
     def test_aes_encryption_consistency(self):
 
         # test encryption-decryption for each test message
@@ -60,7 +59,6 @@ class TestCrypto(unittest.TestCase):
             # check whether they are equal
             self.assertEqual(test_der, pt)
 
-    @unittest.skip("skip")
     def test_content_block_assembly_consistency(self):
 
         # test assembly-disassembly of a content block for each test message
@@ -105,7 +103,6 @@ class TestCrypto(unittest.TestCase):
 
             # check whether verification was successful
             self.assertTrue(res)
-
 
     def test_generate_hmac(self):
         self.crypto_obj._Crypto__generate_hmac(encode(
