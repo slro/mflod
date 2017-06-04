@@ -23,6 +23,7 @@
   ],
   "env_mod_path": "/etc/profile.d/env_mod.sh",
   "env_mod_cmds": [
-    "cd /vagrant"
+    "cd /vagrant",
+    "mv ubuntu*.log log/"
   ]
 }
