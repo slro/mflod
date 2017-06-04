@@ -40,7 +40,6 @@ class TestCrypto(unittest.TestCase):
         self.crypto_obj = Crypto()
         self.key_manager = DummyKeyManager()
 
-    @unittest.skip("skip")
     def test_aes_encryption_consistency(self):
 
         # test encryption-decryption for each test message
@@ -60,7 +59,6 @@ class TestCrypto(unittest.TestCase):
             # check whether they are equal
             self.assertEqual(test_der, pt)
 
-    @unittest.skip("skip")
     def test_content_block_assembly_consistency(self):
 
         # test assembly-disassembly of a content block for each test message
@@ -78,7 +76,6 @@ class TestCrypto(unittest.TestCase):
                         key)[1],
                     msg)
 
-    @unittest.skip("skip")
     def test_signing_consistency(self):
 
         # test signature creation and verification for each test message
@@ -107,21 +104,18 @@ class TestCrypto(unittest.TestCase):
             # check whether verification was successful
             self.assertTrue(res)
 
-    @unittest.skip("skip")
     def test_generate_hmac(self):
         self.crypto_obj._Crypto__generate_hmac(encode(
                             univ.OctetString("test_me")),
                             urandom(20)
                         )
 
-    @unittest.skip("skip")
     def test_assemble_hmac_block(self):
         self.crypto_obj._Crypto__assemble_hmac_block(
             self.crypto_obj._Crypto__generate_hmac(
                 encode(univ.OctetString("test_me")),
                 urandom(20)), urandom(20))
-
-    @unittest.skip("skip")
+# libssl-dev
     def test_verify_hmac(self):
         key = urandom(20)
         key2 = urandom(20)

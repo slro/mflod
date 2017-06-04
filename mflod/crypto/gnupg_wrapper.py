@@ -24,7 +24,7 @@ class GnuPGWrapper(object):
 
         @:param gnupg_home_dir: str (Full pathname to directory containing the public and private keyrings.)
         """
-        self.gpg = gnupg.GPG(gnupghome=gnupg_home_dir)
+        self.gpg = gnupg.GPG(homedir=gnupg_home_dir)
 
         self.logger = logging.getLogger(__name__)
         self.logger.debug('GnuPGWrapper instance is being created.')

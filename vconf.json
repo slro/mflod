@@ -11,11 +11,13 @@
     "system_update.sh",
     "install_git.sh",
     "install_pip3.sh",
-    "install_pyasn1.sh",
+    "install_libssl_dev.sh",
     "install_gnupg.sh",
     "install_pgpdump.sh",
     "install_haveged.sh",
-    "install_unittest_data_provider.sh"
+    "install_unittest_data_provider.sh",
+    "install_cryptography.sh",
+    "install_pyasn1.sh"
   ],
   "env_mod_path": "/etc/profile.d/env_mod.sh",
   "env_mod_cmds": [
