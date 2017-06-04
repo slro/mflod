@@ -5,5 +5,5 @@ cd /vagrant/vconf || exit 1
 source provision_helper.sh
 
 install_package 'haveged' 'haveged' "
-pacman -S --noconfirm haveged
+apt-get install -y haveged
 "

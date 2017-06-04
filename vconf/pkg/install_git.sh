@@ -5,5 +5,5 @@ cd /vagrant/vconf || exit 1
 source provision_helper.sh
 
 install_package 'git --version' 'git' "
-pacman -S --noconfirm git
+apt-get install -y git
 "
