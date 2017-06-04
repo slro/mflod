@@ -1,7 +1,7 @@
 {
-  "base_box": "ubuntu/xenial64",
+  "base_box": "dreamscapes/archlinux",
   "vb_props": {
-    "vm_name": "vagrant_ubuntu_1604_mdlod",
+    "vm_name": "archlinux_mdlod",
     "cpu_count": "4",
     "cpu_cap_p": "50",
     "ram_amount": "4096"
@@ -17,11 +17,12 @@
     "install_haveged.sh",
     "install_unittest_data_provider.sh",
     "install_cryptography.sh",
-    "install_pyasn1.sh"
+    "install_pyasn1.sh",
+    "install_cryptography.sh"
+
   ],
   "env_mod_path": "/etc/profile.d/env_mod.sh",
   "env_mod_cmds": [
-    "cd /vagrant",
-    "mv ubuntu*.log log/"
+    "cd /vagrant"
   ]
 }

@@ -119,3 +119,73 @@ List of provided methods:
             the specified fingerprint.
 
 > NB: **test_key_manager.py** provides **100%** coverage unit tests for KeyManager class and on its dependencies.
+
+---
+
+> Usage examples:
+
+```python
+import os
+from mflod.crypto.key_manager import KeyManager
+
+
+# Instantiate KeyManager class and defines its instance in a key_manager variable
+key_manager = KeyManager(os.environ['HOME'] + '/.gnupg')
+
+
+# Generates specified key size (512 bits in this case) RSA private key
+# Returns => <cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object at ...>
+print(key_manager.generate_plain_rsa_key(512))
+
+
+# get_pgp_rsa_key_id method usage --------------------------------------------------------------------------------------
+# Searches private key with the fingerprint of "fake_key_id" and returns None, since it can't be found
+print(key_manager.get_pgp_rsa_key_id('fake_key_id', True))
+
+
+# Searches public key with the fingerprint of "fake_key_id" and returns None, since it can't be found
+print(key_manager.get_pgp_rsa_key_id('fake_key_id', False))
+
+
+# get_pgp_rsa_keys method usage ----------------------------------------------------------------------------------------
+# Iterates through maximum 10 PGP private keys from local key chain
+for item in key_manager.get_pgp_rsa_keys(limit=10, secret=True):
+    print(item)
+
+
+# compute_rsa_private_key method usage ---------------------------------------------------------------------------------
+# Returns <cryptography.hazmat.backends.openssl.rsa._RSAPrivateKey object at ...>
+private_key = key_manager.compute_rsa_private_key(5, 17, 3, 85, 29)
+print(private_key)
+
+
+# compute_rsa_public_key method usage ----------------------------------------------------------------------------------
+# Returns <cryptography.hazmat.backends.openssl.rsa._RSAPublicKey object at ...>
+public_key = key_manager.compute_rsa_public_key(3, 85)
+print(public_key)
+
+
+# rsa_private_key_to_pem method usage ----------------------------------------------------------------------------------
+# Returns b'-----BEGIN RSA PRIVATE KEY-----\nMBsCAQACAVUCAQMCAR0CAQUCARECAQECAQ0CAQM=\n-----END RSA PRIVATE KEY-----\n'
+print(key_manager.rsa_private_key_to_pem(private_key))
+
+
+# rsa_public_key_to_pem method usage -----------------------------------------------------------------------------------
+# Returns b'-----BEGIN PUBLIC KEY-----\nMBowDQYJKoZIhvcNAQEBBQADCQAwBgIBVQIBAw==\n-----END PUBLIC KEY-----\n'
+print(key_manager.rsa_public_key_to_pem(public_key))
+
+
+# generate_pgp_key method usage ----------------------------------------------------------------------------------------
+# Generates PGP key pair with specified parameters and returns PGP key fingerprint
+pgp_key_fingerprint = key_manager.generate_pgp_key(1024, 'test name', 'test comment', 'test@example.com')
+
+
+# delete_pgp_key method usage ------------------------------------------------------------------------------------------
+# Deletes PGP key pair of specified fingerprint, returns None
+key_manager.delete_pgp_key(pgp_key_fingerprint)
+
+
+# NB. Protected method usage (method names starting with _) is not described in examples,
+# since they are used internally, though can be called from outside as well.
+
+```

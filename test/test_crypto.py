@@ -115,7 +115,7 @@ class TestCrypto(unittest.TestCase):
             self.crypto_obj._Crypto__generate_hmac(
                 encode(univ.OctetString("test_me")),
                 urandom(20)), urandom(20))
-# libssl-dev
+
     def test_verify_hmac(self):
         key = urandom(20)
         key2 = urandom(20)
