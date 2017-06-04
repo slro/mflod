@@ -1,7 +1,7 @@
 {
-  "base_box": "dreamscapes/archlinux",
+  "base_box": "ubuntu/xenial64",
   "vb_props": {
-    "vm_name": "archlinux_mdlod",
+    "vm_name": "vagrant_ubuntu_1604_mdlod",
     "cpu_count": "4",
     "cpu_cap_p": "50",
     "ram_amount": "4096"
