@@ -119,6 +119,9 @@ class GnuPGWrapper(object):
         :return: str|None
         """
         try:
+            if key_id is None:
+                raise ValueError
+
             key = self.gpg.export_keys(key_id, secret=secret_key)
 
             return None if key == '' else key
